@@ -50,3 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Database
+air_quality.db
+
+# Binary
+air_quality_monitor
