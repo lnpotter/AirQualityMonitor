@@ -7,17 +7,6 @@
 
 #define DB_NAME "air_quality.db"
 
-typedef struct {
-    int sensor_id;
-    char timestamp[20];
-    float pm25;
-    float pm10;
-    float co;
-    float no2;
-    float o3;
-    float so2;
-} AirQualityData;
-
 void generate_random_data(AirQualityData *data);
 void insert_data(AirQualityData data);
 

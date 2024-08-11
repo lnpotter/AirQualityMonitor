@@ -5,16 +5,6 @@
 
 #define ALERT_EMAIL "your_email@example.com"
 
-typedef struct {
-    int sensor_id;
-    float pm25;
-    float pm10;
-    float co;
-    float no2;
-    float o3;
-    float so2;
-} AirQualityData;
-
 void check_alerts(AirQualityData data);
 void send_email_alert(AirQualityData data);
 
