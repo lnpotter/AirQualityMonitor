@@ -56,3 +56,6 @@ air_quality.db
 
 # Binary
 air_quality_monitor
+
+# Config
+config.cfg
