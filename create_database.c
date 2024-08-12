@@ -26,7 +26,7 @@ void create_database() {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
     } else {
-        printf("Database and table created successfully!\n");
+        printf("Database and SensorData table created successfully!\n");
     }
 
     sqlite3_close(db);
