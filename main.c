@@ -35,7 +35,6 @@ int main() {
 
     // Example: Load sensor modules
     load_sensor_module("./dht22.so");
-    load_sensor_module("./mq135.so");
 
     show_menu();
 
