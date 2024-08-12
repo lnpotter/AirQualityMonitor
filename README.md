@@ -25,11 +25,12 @@ To compile and run the project, you will need:
 - SQLite3
 - Ncurses Library
 - libharu for PDF generation
+- wiringPi Library for sensor interaction
 
 On a Debian-based system, you can install the necessary packages with:
 
 ```sh
-sudo apt-get install gcc sqlite3 libsqlite3-dev libncurses5-dev libncursesw5-dev libhpdf-dev
+sudo apt-get install gcc sqlite3 libsqlite3-dev libncurses5-dev libncursesw5-dev libhpdf-dev wiringpi
 ```
 
 ## File Structure
@@ -52,6 +53,7 @@ AirQualityMonitor/
 ├── interval_collection.c
 ├── generate_pdf_report.c
 ├── config_persistence.c
+├── dht22.c
 ```
 
 ## Compilation
