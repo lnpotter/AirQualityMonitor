@@ -8,32 +8,25 @@ void create_database() {
     char *err_msg = 0;
 
     int rc = sqlite3_open(DB_NAME, &db);
-
     if (rc != SQLITE_OK) {
         fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
         sqlite3_close(db);
         return;
     }
 
-    char *sql = "CREATE TABLE IF NOT EXISTS AirQuality ("
+    char *sql = "CREATE TABLE IF NOT EXISTS SensorData ("
                 "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "sensor_id INTEGER,"
-                "timestamp DATETIME,"
-                "pm25 REAL,"
-                "pm10 REAL,"
-                "co REAL,"
-                "no2 REAL,"
-                "o3 REAL,"
-                "so2 REAL"
+                "sensor_name TEXT,"
+                "data REAL,"
+                "timestamp DATETIME"
                 ");";
 
     rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
-
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQL error: %s\n", err_msg);
         sqlite3_free(err_msg);
     } else {
-        printf("Database and table created successfully!\n");
+        printf("Database and SensorData table created successfully!\n");
     }
 
     sqlite3_close(db);

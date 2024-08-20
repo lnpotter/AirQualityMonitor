@@ -15,23 +15,24 @@ SRCS = main.c \
        data_cleanup.c \
        interval_collection.c \
        generate_pdf_report.c \
-       config_persistence.c
+       config_persistence.c \
+       dht22.c
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra
+CFLAGS = -Wall -Wextra -lwiringPi
 LIBS = -lsqlite3 -lncurses -lhpdf
 
 # Default rule
 all: $(TARGET)
 
-# Compile all files and generate the final binary
+# Compile main program
 $(TARGET): $(SRCS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 # Clean compiled files
 clean:
-	rm -f $(TARGET) *.o
+	rm -f $(TARGET) *.o *.so
 
 # Full clean, including backups and PDFs
 clean_all: clean
