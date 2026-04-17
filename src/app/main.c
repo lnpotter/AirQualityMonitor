@@ -245,7 +245,9 @@ void configure_multi_sensor(void) {
                 
                 if (ok) {
                     SensorConfig *config = &sensor_configs[active_sensor_count];
-                    snprintf(config->mode, sizeof(config->mode), "%s", input);
+                    // Intentional: mode[32] stores max 31 chars + null
+                    strncpy(config->mode, input, sizeof(config->mode) - 1);
+                    config->mode[sizeof(config->mode) - 1] = '\0';
                     config->plugin_path[0] = '\0'; // Use default path
                     config->enabled = 1;
                     active_sensor_count++;

@@ -9,7 +9,7 @@
 #include <hpdf.h>
 
 #define PDF_FILE "sensor_data_report.pdf"
-#define MAX_SENSORS 50
+#define PDF_MAX_SENSORS 50
 #define MAX_ALERTS 200
 
 typedef struct {
@@ -543,11 +543,11 @@ void generate_pdf_report(void) {
     // Get unique sensors
     sqlite3_stmt *sensor_res = NULL;
     const char *sensor_sql = "SELECT DISTINCT s.id, s.name FROM readings r JOIN sensors s ON s.id = r.sensor_id ORDER BY s.id;";
-    SensorStats sensor_stats[MAX_SENSORS];
+    SensorStats sensor_stats[PDF_MAX_SENSORS];
     int sensor_count = 0;
     
     if (sqlite3_prepare_v2(db, sensor_sql, -1, &sensor_res, NULL) == SQLITE_OK) {
-        while (sqlite3_step(sensor_res) == SQLITE_ROW && sensor_count < MAX_SENSORS) {
+        while (sqlite3_step(sensor_res) == SQLITE_ROW && sensor_count < PDF_MAX_SENSORS) {
             int sid = sqlite3_column_int(sensor_res, 0);
             const char *sname = (const char *)sqlite3_column_text(sensor_res, 1);
             init_sensor_stats(&sensor_stats[sensor_count], sid, sname ? sname : "", "");
