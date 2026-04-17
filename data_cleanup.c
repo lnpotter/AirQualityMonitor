@@ -19,7 +19,7 @@ void cleanup_old_data() {
 
     char sql[256];
     snprintf(sql, sizeof(sql),
-             "DELETE FROM AirQuality WHERE timestamp < datetime('now', '-%d days');", 
+             "DELETE FROM SensorData WHERE timestamp < datetime('now', '-%d days');", 
              retention_period);
 
     rc = sqlite3_exec(db, sql, 0, 0, &err_msg);

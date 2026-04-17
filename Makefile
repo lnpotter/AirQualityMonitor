@@ -20,7 +20,7 @@ SRCS = main.c \
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -lwiringPi
+CFLAGS = -Wall -Wextra
 LIBS = -lsqlite3 -lncurses -lhpdf
 
 # Default rule

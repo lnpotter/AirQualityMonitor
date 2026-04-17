@@ -14,12 +14,17 @@ void create_database() {
         return;
     }
 
-    char *sql = "CREATE TABLE IF NOT EXISTS SensorData ("
-                "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                "sensor_name TEXT,"
-                "data REAL,"
-                "timestamp DATETIME"
-                ");";
+    char *sql =
+    "CREATE TABLE IF NOT EXISTS SensorData ("
+    "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+    "sensor_id INTEGER,"
+    "timestamp TEXT,"
+    "pm25 REAL,"
+    "pm10 REAL,"
+    "co REAL,"
+    "no2 REAL,"
+    "o3 REAL,"
+    "so2 REAL);";
 
     rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK) {

@@ -21,9 +21,11 @@ void insert_data(AirQualityData data) {
     }
 
     char sql[256];
-    sprintf(sql, "INSERT INTO AirQuality (sensor_id, timestamp, pm25, pm10, co, no2, o3, so2) "
-                 "VALUES (%d, '%s', %.2f, %.2f, %.2f, %.2f, %.2f, %.2f);",
-            data.sensor_id, data.timestamp, data.pm25, data.pm10, data.co, data.no2, data.o3, data.so2);
+    sprintf(sql,
+        "INSERT INTO SensorData (sensor_id, timestamp, pm25, pm10, co, no2, o3, so2) "
+        "VALUES (%d, '%s', %.2f, %.2f, %.2f, %.2f, %.2f, %.2f);",
+        data.sensor_id, data.timestamp,
+        data.pm25, data.pm10, data.co, data.no2, data.o3, data.so2);
 
     rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
 

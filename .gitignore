@@ -51,11 +51,19 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# Database
+# Database and generated data (any location)
 air_quality.db
+data/
+backup_*.db
+*.db-journal
 
 # Binary
 air_quality_monitor
+air_quality_monitor.exe
 
 # Config
 config.cfg
+
+# Generated exports
+sensor_data.csv
+sensor_data_report.pdf

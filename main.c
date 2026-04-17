@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
+#include <time.h>
+#include <sqlite3.h>
 
 // Function declarations for each module
 void create_database();
@@ -16,6 +18,7 @@ void backup_database();
 void cleanup_old_data();
 void interval_collection();
 void generate_pdf_report();
+void insert_data(AirQualityData data);
 int load_config();
 void save_config();
 void show_menu();
@@ -34,7 +37,7 @@ int main() {
     create_database();
 
     // Example: Load sensor modules
-    load_sensor_module("./dht22.so");
+    //load_sensor_module("./dht22.so");
 
     show_menu();
 
@@ -55,37 +58,93 @@ void load_sensor_module(const char *module_path) {
     }
 
     sensor->init();
-    float data = sensor->read_data();
-    if (data != -1) {
-        insert_sensor_data(sensor->name, data);
+    AirQualityData aq;
+
+    sensor->init();
+
+    aq.sensor_id = 1;
+
+    time_t now = time(NULL);
+    strftime(aq.timestamp, sizeof(aq.timestamp), "%Y-%m-%d %H:%M:%S", localtime(&now));
+
+    float value = sensor->read_data();
+
+    if (value != -1) {
+        aq.pm25 = value;
+        aq.pm10 = value;
+        aq.co   = value;
+        aq.no2  = value;
+        aq.o3   = value;
+        aq.so2  = value;
+
+        insert_data(aq);
     }
+
     sensor->shutdown();
 
     dlclose(handle);
 }
 
-void insert_sensor_data(const char *sensor_name, float data) {
-    sqlite3 *db;
-    char *err_msg = 0;
-    char sql[256];
+void show_menu() {
+    int option;
 
-    int rc = sqlite3_open("air_quality.db", &db);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
-        return;
-    }
+    do {
+        printf("\n=== Air Quality Monitor ===\n");
+        printf("1. Start data collection\n");
+        printf("2. Fetch data\n");
+        printf("3. Check alerts\n");
+        printf("4. Export to CSV\n");
+        printf("5. Generate statistics\n");
+        printf("6. Backup database\n");
+        printf("7. Cleanup old data\n");
+        printf("8. Generate PDF report\n");
+        printf("9. Configure limits and settings\n");
+        printf("0. Exit\n");
+        printf("Select an option: ");
 
-    snprintf(sql, sizeof(sql),
-             "INSERT INTO SensorData (sensor_name, data, timestamp) VALUES ('%s', %.2f, datetime('now'));",
-             sensor_name, data);
+        if (scanf("%d", &option) != 1) {
+            // Limpa entrada inválida
+            while (getchar() != '\n');
+            printf("Invalid input.\n");
+            continue;
+        }
 
-    rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
-        sqlite3_free(err_msg);
-    } else {
-        printf("Data from %s sensor inserted successfully!\n", sensor_name);
-    }
+        switch (option) {
+            case 1:
+                interval_collection();
+                break;
+            case 2:
+                fetch_data();
+                break;
+            case 3:
+                check_alerts();
+                break;
+            case 4:
+                export_to_csv();
+                break;
+            case 5:
+                generate_statistics();
+                break;
+            case 6:
+                backup_database();
+                break;
+            case 7:
+                cleanup_old_data();
+                break;
+            case 8:
+                generate_pdf_report();
+                break;
+            case 9:
+                configure_limits();
+                save_config();
+                break;
+            case 0:
+                printf("Exiting program...\n");
+                break;
+            default:
+                printf("Invalid option. Try again.\n");
+        }
 
-    sqlite3_close(db);
+    } while (option != 0);
 }
+
