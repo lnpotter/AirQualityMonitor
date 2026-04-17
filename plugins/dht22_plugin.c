@@ -160,7 +160,6 @@ static int dht22_read_sample(AirQualityData *out) {
     out->o3 = 0.0f;
     out->so2 = 0.0f;
 
-    printf("DHT22: Humidity = %.1f %%  Temperature = %.1f C\n", h, t);
     return 0;
 }
 
