@@ -6,24 +6,24 @@ SRC_DIR = src
 INC_DIR = include
 PLUGIN_DIR = plugins
 
-SRCS = $(SRC_DIR)/main.c \
-       $(SRC_DIR)/globals.c \
-       $(SRC_DIR)/aqm_paths.c \
-       $(SRC_DIR)/aqm_platform.c \
-       $(SRC_DIR)/aqm_db.c \
-       $(SRC_DIR)/sensor_loader.c \
-       $(SRC_DIR)/sensor_info.c \
-       $(SRC_DIR)/insert_data.c \
-       $(SRC_DIR)/fetch_data.c \
-       $(SRC_DIR)/alert_system.c \
-       $(SRC_DIR)/export_to_csv.c \
-       $(SRC_DIR)/configure_limits.c \
-       $(SRC_DIR)/generate_statistics.c \
-       $(SRC_DIR)/backup_database.c \
-       $(SRC_DIR)/data_cleanup.c \
-       $(SRC_DIR)/interval_collection.c \
-       $(SRC_DIR)/generate_pdf_report.c \
-       $(SRC_DIR)/config_persistence.c
+SRCS = $(SRC_DIR)/app/main.c \
+       $(SRC_DIR)/core/globals.c \
+       $(SRC_DIR)/core/aqm_paths.c \
+       $(SRC_DIR)/core/aqm_platform.c \
+       $(SRC_DIR)/core/aqm_db.c \
+       $(SRC_DIR)/sensor/sensor_loader.c \
+       $(SRC_DIR)/sensor/sensor_info.c \
+       $(SRC_DIR)/data/insert_data.c \
+       $(SRC_DIR)/data/fetch_data.c \
+       $(SRC_DIR)/report/alert_system.c \
+       $(SRC_DIR)/data/export_to_csv.c \
+       $(SRC_DIR)/config/configure_limits.c \
+       $(SRC_DIR)/data/generate_statistics.c \
+       $(SRC_DIR)/maintenance/backup_database.c \
+       $(SRC_DIR)/maintenance/data_cleanup.c \
+       $(SRC_DIR)/sensor/interval_collection.c \
+       $(SRC_DIR)/report/generate_pdf_report.c \
+       $(SRC_DIR)/config/config_persistence.c
 
 CC ?= gcc
 CFLAGS = -Wall -Wextra -std=c99 -I$(INC_DIR)

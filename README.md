@@ -64,16 +64,21 @@ AirQualityMonitor/
 │   ├── sensor_loader.h
 │   └── ...other headers
 ├── src/
-│   ├── main.c
-│   ├── aqm_db.c
-│   ├── interval_collection.c
-│   ├── sensor_loader.c
-│   └── ...other modules
+│   ├── app/
+│   │   └── main.c
+│   ├── core/          # db, paths, platform, global defaults
+│   ├── config/        # limits + config persistence
+│   ├── data/          # insert/fetch/export/statistics
+│   ├── sensor/        # collection flow + plugin loader/runtime info
+│   ├── report/        # alerts + pdf report
+│   └── maintenance/   # backup + cleanup
 └── plugins/
     ├── dht22_plugin.c
     ├── bme680_plugin.c
     ├── pms5003_plugin.c
     └── mhz19_plugin.c
+├── docs/
+│   └── plugins.md
 ```
 
 ## Build
@@ -130,6 +135,8 @@ ABI safety:
 
 - `api_version` is required and validated by the loader (`SENSOR_PLUGIN_API_VERSION`).
 - mandatory metadata fields: `name`, `plugin_version`, `description`.
+
+Detailed authoring guide: `docs/plugins.md`.
 
 ### Example plugins included
 
