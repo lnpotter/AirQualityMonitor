@@ -39,77 +39,86 @@ static const char *resolve_default_plugin_path(const char *mode) {
 }
 
 static void show_single_sensor_info(const char *mode, const char *plugin_path) {
-    printf("\n[Single Sensor Mode]\n");
-    printf("  Mode: %s\n", mode);
+    printf("\n========================================\n");
+    printf("  SINGLE SENSOR MODE (Legacy)\n");
+    printf("========================================\n");
+    printf("  Sensor mode:     %s\n", mode);
     printf("  Plugins enabled: %s\n", sensor_plugins_enabled ? "yes" : "no");
-    printf("  Plugin path: %s\n", (plugin_path && plugin_path[0]) ? plugin_path : "(not set)");
+    printf("  Plugin path:     %s\n", (plugin_path && plugin_path[0]) ? plugin_path : "(not set)");
 
     if (!sensor_plugins_enabled || !plugin_path || !plugin_path[0]) {
-        printf("  Active source: builtin mock\n");
+        printf("\n  Status: Using builtin mock generator\n");
         return;
     }
 
     SensorModule module;
     if (sensor_module_load(plugin_path, &module) != 0) {
-        printf("  Plugin status: failed to load\n");
+        printf("\n  Status: FAILED to load plugin\n");
         return;
     }
 
-    printf("  Plugin status: loaded\n");
-    printf("  Plugin name: %s\n", module.plugin->name);
-    printf("  Plugin API version: %d\n", module.plugin->api_version);
-    printf("  Plugin version: %s\n", module.plugin->plugin_version);
-    printf("  Plugin description: %s\n", module.plugin->description);
-    printf("  Sensor ID: %d\n", module.plugin->sensor_id);
+    printf("\n  Plugin Information:\n");
+    printf("  -------------------\n");
+    printf("  Name:        %s\n", module.plugin->name ? module.plugin->name : "N/A");
+    printf("  Version:     %s\n", module.plugin->plugin_version ? module.plugin->plugin_version : "N/A");
+    printf("  API Version: %d\n", module.plugin->api_version);
+    printf("  Sensor ID:   %d\n", module.plugin->sensor_id);
+    printf("  Description: %s\n", module.plugin->description ? module.plugin->description : "N/A");
+    printf("  Status:      Loaded successfully\n");
+
     sensor_module_unload(&module);
 }
 
 static void show_multi_sensor_info(void) {
-    printf("\n[Multi-Sensor Mode - %d sensor(s) configured]\n", active_sensor_count);
+    printf("\n========================================\n");
+    printf("  MULTI-SENSOR MODE\n");
+    printf("========================================\n");
+    printf("  Total sensors configured: %d (max: %d)\n", active_sensor_count, MAX_SENSORS);
     printf("  Plugins enabled globally: %s\n", sensor_plugins_enabled ? "yes" : "no");
-    
-    int enabled_count = 0;
+
+    if (active_sensor_count == 0) {
+        printf("\n  No sensors configured. Use option 12 (Auto-detect) or 13 (Configure multi-sensor).\n");
+        return;
+    }
+
+    printf("\n  Configured Sensors:\n");
+    printf("  ===================\n\n");
+
     for (int i = 0; i < active_sensor_count; i++) {
-        if (sensor_configs[i].enabled) {
-            enabled_count++;
+        SensorConfig *config = &sensor_configs[i];
+        const char *plugin_path = config->plugin_path[0] ? config->plugin_path : resolve_default_plugin_path(config->mode);
+
+        printf("  [%d] Sensor: %s\n", i + 1, config->mode);
+        printf("       Status:     %s\n", config->enabled ? "ENABLED" : "DISABLED");
+        printf("       Plugin:     %s\n", plugin_path ? plugin_path : "(default path)");
+
+        if (sensor_plugins_enabled && plugin_path && plugin_path[0]) {
+            SensorModule module;
+            if (sensor_module_load(plugin_path, &module) == 0) {
+                printf("       Name:       %s\n", module.plugin->name ? module.plugin->name : "N/A");
+                printf("       Version:    %s\n", module.plugin->plugin_version ? module.plugin->plugin_version : "N/A");
+                printf("       API Ver:    %d\n", module.plugin->api_version);
+                printf("       Sensor ID:  %d\n", module.plugin->sensor_id);
+                printf("       Load:       OK\n");
+                sensor_module_unload(&module);
+            } else {
+                printf("       Load:       FAILED\n");
+            }
+        } else {
+            printf("       Load:       SKIPPED (plugins disabled)\n");
+        }
+
+        if (i < active_sensor_count - 1) {
+            printf("\n");
         }
     }
-    printf("  Active sensors: %d\n", enabled_count);
-    printf("  Inactive sensors: %d\n", active_sensor_count - enabled_count);
-    
-    for (int i = 0; i < active_sensor_count; i++) {
-        printf("\n  Sensor #%d:\n", i + 1);
-        printf("    Mode: %s\n", sensor_configs[i].mode);
-        printf("    Status: %s\n", sensor_configs[i].enabled ? "enabled" : "disabled");
-        
-        const char *plugin_path = sensor_configs[i].plugin_path[0] ? 
-                                  sensor_configs[i].plugin_path : 
-                                  resolve_default_plugin_path(sensor_configs[i].mode);
-        printf("    Plugin path: %s\n", plugin_path ? plugin_path : "(not set)");
-        
-        if (!sensor_configs[i].enabled) {
-            continue;
-        }
-        
-        SensorModule module;
-        if (sensor_module_load(plugin_path, &module) != 0) {
-            printf("    Plugin status: failed to load\n");
-            continue;
-        }
-        
-        printf("    Plugin status: loaded\n");
-        printf("    Plugin name: %s\n", module.plugin->name);
-        printf("    Plugin API version: %d\n", module.plugin->api_version);
-        printf("    Plugin version: %s\n", module.plugin->plugin_version);
-        printf("    Plugin description: %s\n", module.plugin->description);
-        printf("    Sensor ID: %d\n", module.plugin->sensor_id);
-        sensor_module_unload(&module);
-    }
+
+    printf("\n========================================\n");
+    printf("  Active for data collection: %d sensor(s)\n", active_sensor_count);
+    printf("========================================\n");
 }
 
 void show_sensor_runtime_info(void) {
-    printf("=== Sensor Runtime Information ===");
-    
     if (active_sensor_count > 0) {
         show_multi_sensor_info();
     } else {
@@ -117,7 +126,5 @@ void show_sensor_runtime_info(void) {
         const char *plugin_path = sensor_plugin_path[0] ? sensor_plugin_path : resolve_default_plugin_path(mode);
         show_single_sensor_info(mode, plugin_path);
     }
-    
-    printf("\n");
 }
 

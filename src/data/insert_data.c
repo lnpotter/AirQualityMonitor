@@ -95,8 +95,8 @@ void insert_data(AirQualityData data) {
     if (rc != SQLITE_DONE) {
         fprintf(stderr, "Insert failed: %s\n", sqlite3_errmsg(db));
     } else {
-        const char *display_model = data.model[0] ? data.model : default_model_name(data.sensor_id);
-        printf("Data inserted successfully from %s (sensor_id: %d).\n", display_model, data.sensor_id);
+        const char *model_name = data.model[0] ? data.model : default_model_name(data.sensor_id);
+        printf("Data from %s (ID: %d) inserted successfully.\n", model_name, data.sensor_id);
     }
 
     aqm_db_close(db);
