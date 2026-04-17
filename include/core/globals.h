@@ -28,8 +28,20 @@ typedef struct {
     float so2;
 } AirQualityData;
 
+#define MAX_SENSORS 8
+
+typedef struct {
+    char mode[32];
+    char plugin_path[256];
+    int enabled;
+} SensorConfig;
+
 extern int sensor_plugins_enabled;
 extern char sensor_mode[32];
 extern char sensor_plugin_path[256];
+extern SensorConfig sensor_configs[MAX_SENSORS];
+extern int active_sensor_count;
+
+void init_sensor_configs(void);
 
 #endif
