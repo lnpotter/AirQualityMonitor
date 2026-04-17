@@ -1,64 +1,76 @@
+#include "aqm_paths.h"
+#include "aqm_platform.h"
 #include "globals.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define CONFIG_FILE "config.cfg"
-
-void save_config();
-int load_config();
-
-void save_config() {
-    FILE *file = fopen(CONFIG_FILE, "w");
-    if (file == NULL) {
-        fprintf(stderr, "Cannot open config file for writing.\n");
+void save_config(void) {
+    char path[AQM_PATH_MAX];
+    if (aqm_get_config_path(path, sizeof(path)) != 0) {
+        fprintf(stderr, "Could not resolve config path.\n");
         return;
     }
 
-    fprintf(file, "limit_pm25=%.2f\n", limit_pm25);
-    fprintf(file, "limit_pm10=%.2f\n", limit_pm10);
-    fprintf(file, "limit_co=%.2f\n", limit_co);
-    fprintf(file, "limit_no2=%.2f\n", limit_no2);
-    fprintf(file, "limit_o3=%.2f\n", limit_o3);
-    fprintf(file, "limit_so2=%.2f\n", limit_so2);
+    FILE *file = fopen(path, "w");
+    if (file == NULL) {
+        fprintf(stderr, "Cannot open config file for writing: %s\n", path);
+        return;
+    }
+
+    fprintf(file, "limit_pm25=%.4f\n", limit_pm25);
+    fprintf(file, "limit_pm10=%.4f\n", limit_pm10);
+    fprintf(file, "limit_co=%.4f\n", limit_co);
+    fprintf(file, "limit_no2=%.6f\n", limit_no2);
+    fprintf(file, "limit_o3=%.6f\n", limit_o3);
+    fprintf(file, "limit_so2=%.6f\n", limit_so2);
     fprintf(file, "collection_interval=%d\n", collection_interval);
     fprintf(file, "retention_period=%d\n", retention_period);
 
     fclose(file);
-    printf("Configuration saved.\n");
+    printf("Configuration saved to %s\n", path);
 }
 
-int load_config() {
-    FILE *file = fopen(CONFIG_FILE, "r");
-    if (file == NULL) {
-        // File does not exist, return 0 to indicate failure
+int load_config(void) {
+    char path[AQM_PATH_MAX];
+    if (aqm_get_config_path(path, sizeof(path)) != 0)
         return 0;
-    }
+
+    FILE *file = fopen(path, "r");
+    if (file == NULL)
+        return 0;
 
     char line[256];
     while (fgets(line, sizeof(line), file)) {
-        char *key = strtok(line, "=");
-        char *value = strtok(NULL, "\n");
+        aqm_trim_crlf(line);
+        if (line[0] == '\0')
+            continue;
 
-        if (strcmp(key, "limit_pm25") == 0) {
-            limit_pm25 = atof(value);
-        } else if (strcmp(key, "limit_pm10") == 0) {
-            limit_pm10 = atof(value);
-        } else if (strcmp(key, "limit_co") == 0) {
-            limit_co = atof(value);
-        } else if (strcmp(key, "limit_no2") == 0) {
-            limit_no2 = atof(value);
-        } else if (strcmp(key, "limit_o3") == 0) {
-            limit_o3 = atof(value);
-        } else if (strcmp(key, "limit_so2") == 0) {
-            limit_so2 = atof(value);
-        } else if (strcmp(key, "collection_interval") == 0) {
+        char *eq = strchr(line, '=');
+        if (!eq)
+            continue;
+        *eq = '\0';
+        const char *key = line;
+        const char *value = eq + 1;
+
+        if (strcmp(key, "limit_pm25") == 0)
+            limit_pm25 = (float)atof(value);
+        else if (strcmp(key, "limit_pm10") == 0)
+            limit_pm10 = (float)atof(value);
+        else if (strcmp(key, "limit_co") == 0)
+            limit_co = (float)atof(value);
+        else if (strcmp(key, "limit_no2") == 0)
+            limit_no2 = (float)atof(value);
+        else if (strcmp(key, "limit_o3") == 0)
+            limit_o3 = (float)atof(value);
+        else if (strcmp(key, "limit_so2") == 0)
+            limit_so2 = (float)atof(value);
+        else if (strcmp(key, "collection_interval") == 0)
             collection_interval = atoi(value);
-        } else if (strcmp(key, "retention_period") == 0) {
+        else if (strcmp(key, "retention_period") == 0)
             retention_period = atoi(value);
-        }
     }
 
     fclose(file);
-    return 1; // Return 1 to indicate success
+    return 1;
 }

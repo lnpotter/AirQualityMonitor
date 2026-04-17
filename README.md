@@ -1,47 +1,67 @@
-
 # Air Quality Monitor
 
 ## Overview
 
-The Air Quality Monitor is a C-based application designed to collect, store, and analyze air quality data. The system allows users to configure pollutant limits, set data collection intervals, and generate various reports including PDF and CSV exports. This project supports the monitoring of several pollutants such as PM2.5, PM10, CO, NO2, O3, and SO2.
+Air Quality Monitor is a portable C application that collects, stores, and analyzes air quality–style readings (PM2.5, PM10, CO, NO2, O3, SO2). It uses **SQLite** for storage, optional **libharu** for PDF export, and runs on **Linux**, **macOS**, and **Windows** (e.g. **MSYS2** / **MinGW-w64**).
+
+Legacy code (pre–refactor snapshot) is preserved on the **`legacy`** branch; active development targets **`main`**.
 
 ## Features
 
-- **Database Management**: Automatically creates a SQLite database to store air quality data.
-- **Pollutant Limit Configuration**: Users can configure pollutant limits which will trigger alerts if exceeded.
-- **Data Collection**: The system collects data at user-defined intervals and stores it in the database.
-- **Alerts**: Automatically checks for pollutant levels that exceed the configured limits and can send alerts.
-- **Data Export**: Export collected data to CSV format.
-- **Statistics Generation**: Generate average, max, and min statistics for the collected data.
-- **PDF Reporting**: Generate PDF reports of the collected data.
-- **Backup and Cleanup**: Automatic backup of the database and cleanup of old data.
-- **Configuration Persistence**: Saves user settings in a configuration file for future use.
+- **Structured database**: normalized `sensors` + `readings` tables, foreign keys, indexes, migration from the old single-table `SensorData` schema when present.
+- **Portable paths**: database and config live under `./data/` by default (`air_quality.db`, `config.cfg`). Override with `AIR_QUALITY_DATA_DIR`.
+- **Safe SQL**: parameterized inserts; SQLite backup API for database copies (no `cp` / `copy` shell commands).
+- **Pollutant limits** with alerts evaluated against the **latest** stored sample.
+- **Collection**: simulated readings at a configurable interval (count prompted at runtime).
+- **Export**: CSV with correct column semantics.
+- **Statistics**: per-sensor aggregates (avg / max / min) for each pollutant.
+- **Optional PDF**: built when compiled with `HAVE_HPDF` and linked against libharu.
 
 ## Requirements
 
-To compile and run the project, you will need:
+| Component   | Required | Notes |
+|------------|----------|--------|
+| C compiler | Yes      | GCC or Clang |
+| SQLite 3   | Yes      | Development headers (`libsqlite3-dev`, `sqlite-devel`, MSYS `pacman -S mingw-w64-x86_64-sqlite`, etc.) |
+| libharu    | Optional | For PDF menu item; omit with `make HAVE_HPDF=0` |
 
-- GCC Compiler
-- SQLite3
-- Ncurses Library
-- libharu for PDF generation
-- wiringPi Library for sensor interaction
+**Removed / optional vs old README**: `ncurses`, `wiringPi`, and dynamic loading via `dlopen` are no longer required for the default build (simpler Windows/macOS/Linux parity).
 
-On a Debian-based system, you can install the necessary packages with:
+### Debian / Ubuntu (example)
 
 ```sh
-sudo apt-get install gcc sqlite3 libsqlite3-dev libncurses5-dev libncursesw5-dev libhpdf-dev wiringpi
+sudo apt-get install build-essential pkg-config libsqlite3-dev libhpdf-dev
 ```
 
-## File Structure
+### macOS (Homebrew example)
+
+```sh
+brew install sqlite libharu
+```
+
+### Windows (MSYS2 MinGW64 example)
+
+```sh
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-sqlite mingw-w64-x86_64-libhpdf make
+```
+
+Build without PDF if libhpdf is unavailable:
+
+```sh
+make HAVE_HPDF=0
+```
+
+## File layout (main sources)
 
 ```
 AirQualityMonitor/
 ├── Makefile
+├── README.md
 ├── main.c
-├── globals.h
-├── globals.c
-├── create_database.c
+├── globals.h / globals.c
+├── aqm_paths.c / aqm_paths.h      # data directory and path helpers
+├── aqm_platform.c / aqm_platform.h # sleep, mkdir, stdin flush, trims
+├── aqm_db.c / aqm_db.h            # schema, migration, sqlite helpers
 ├── insert_data.c
 ├── fetch_data.c
 ├── alert_system.c
@@ -54,41 +74,58 @@ AirQualityMonitor/
 ├── generate_pdf_report.c
 ├── config_persistence.c
 ├── dht22.c
+└── sensor.h
 ```
 
-## Compilation
-
-To compile the project, run:
+## Build
 
 ```sh
 make
 ```
 
-This will generate a single executable file named `air_quality_monitor`.
+Produces `air_quality_monitor` (on Windows with MinGW, the file may appear as `air_quality_monitor.exe`).
 
-## Execution
+```sh
+make clean
+```
 
-To execute the program, run:
+## Configuration and data
+
+| Item | Default |
+|------|---------|
+| Data directory | `./data/` (created automatically) |
+| Database | `./data/air_quality.db` |
+| Config | `./data/config.cfg` |
+| Override | Set environment variable `AIR_QUALITY_DATA_DIR` to an absolute or relative directory path |
+
+CSV export writes `sensor_data.csv` in the **current working directory**. PDF output is `sensor_data_report.pdf` in the CWD when PDF support is enabled.
+
+## Usage
 
 ```sh
 ./air_quality_monitor
 ```
 
-On the first run, the program will ask you to configure the settings (pollutant limits, collection intervals, etc.). These settings will be saved to a configuration file for future use.
+On first run, if no config exists, the program prompts for limits and interval settings, then saves them under `./data/config.cfg`.
 
-## Usage
+### Menu
 
-After launching the program, you will be presented with a menu that allows you to:
+1. Start data collection (number of samples × interval from config)  
+2. Fetch data (recent rows, plain text table)  
+3. Check alerts (latest sample vs limits)  
+4. Export to CSV  
+5. Generate statistics  
+6. Backup database (SQLite backup API → `data/backup_<timestamp>_air_quality.db`)  
+7. Cleanup old data (retention in days)  
+8. Generate PDF report (if built with libharu)  
+9. Configure limits and settings  
+0. Exit  
 
-1. Start data collection
-2. Fetch data
-3. Check alerts
-4. Export to CSV
-5. Generate statistics
-6. Backup database
-7. Cleanup old data
-8. Generate PDF report
-9. Configure limits and settings
-10. Exit the program
+## Branches
 
-The program is designed to be extendable, allowing for easy addition of new features as needed.
+- **`main`**: current refactored codebase.  
+- **`legacy`**: snapshot of the previous layout (single-table assumptions, `cp` backup, `ncurses` fetch, etc.) preserved for comparison.
+
+## License
+
+See `LICENSE` in the repository.

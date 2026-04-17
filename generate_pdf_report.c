@@ -1,92 +1,95 @@
-#include <hpdf.h>
+#include "aqm_db.h"
 #include <stdio.h>
 #include <sqlite3.h>
 
-#define DB_NAME "air_quality.db"
+#ifdef HAVE_HPDF
+#include <hpdf.h>
+
 #define PDF_FILE "sensor_data_report.pdf"
 
-void generate_pdf_report() {
-    sqlite3 *db;
-    sqlite3_stmt *res;
+void generate_pdf_report(void) {
+    sqlite3 *db = NULL;
+    if (aqm_db_open(&db) != 0)
+        return;
 
-    HPDF_Doc pdf;
-    HPDF_Page page;
-    HPDF_Font font;
-    HPDF_REAL page_height = 800;
-    HPDF_REAL y = page_height - 50;
-    HPDF_REAL line_height = 20;
+    sqlite3_stmt *res = NULL;
+    const char *sql =
+        "SELECT r.id, r.sensor_id, s.name, r.measured_at, r.pm25, r.pm10, r.co, r.no2, r.o3, r.so2 "
+        "FROM readings r JOIN sensors s ON s.id = r.sensor_id "
+        "ORDER BY r.measured_at ASC LIMIT 500;";
 
-    pdf = HPDF_New(NULL, NULL);
-    if (!pdf) {
-        fprintf(stderr, "Error: Cannot create PDF document.\n");
+    if (sqlite3_prepare_v2(db, sql, -1, &res, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Query failed: %s\n", sqlite3_errmsg(db));
+        aqm_db_close(db);
         return;
     }
 
-    page = HPDF_AddPage(pdf);
-    HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_PORTRAIT);
+    HPDF_Doc pdf = HPDF_New(NULL, NULL);
+    if (!pdf) {
+        fprintf(stderr, "Cannot create PDF document.\n");
+        sqlite3_finalize(res);
+        aqm_db_close(db);
+        return;
+    }
 
-    font = HPDF_GetFont(pdf, "Helvetica", NULL);
-    HPDF_Page_SetFontAndSize(page, font, 12);
+    HPDF_Page page = HPDF_AddPage(pdf);
+    HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_PORTRAIT);
+    HPDF_Font font = HPDF_GetFont(pdf, "Helvetica", NULL);
+    HPDF_Page_SetFontAndSize(page, font, 9);
+
+    HPDF_REAL y = HPDF_Page_GetHeight(page) - 40;
+    const HPDF_REAL line = 12;
+    const HPDF_REAL x0 = 40;
 
     HPDF_Page_BeginText(page);
-    HPDF_Page_TextOut(page, 50, y, "Sensor Data Report");
+    HPDF_Page_TextOut(page, x0, y, "Air quality readings (max 500 rows)");
+    y -= line * 2;
 
-    y -= line_height * 2;
-    HPDF_Page_TextOut(page, 50, y, "Sensor Name");
-    HPDF_Page_TextOut(page, 200, y, "Data");
-    HPDF_Page_TextOut(page, 300, y, "Timestamp");
-
-    y -= line_height;
-
-    int rc = sqlite3_open(DB_NAME, &db);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
-        HPDF_Free(pdf);
-        return;
-    }
-
-    char *sql = "SELECT * FROM SensorData;";
-    rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "Failed to execute query: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
-        HPDF_Free(pdf);
-        return;
-    }
+    HPDF_Page_TextOut(page, x0, y, "id");
+    HPDF_Page_TextOut(page, x0 + 40, y, "sid");
+    HPDF_Page_TextOut(page, x0 + 80, y, "sensor");
+    HPDF_Page_TextOut(page, x0 + 200, y, "time");
+    HPDF_Page_TextOut(page, x0 + 320, y, "pm25/pm10/co...");
+    y -= line;
 
     while (sqlite3_step(res) == SQLITE_ROW) {
-        const char *sensor_name = (const char *)sqlite3_column_text(res, 1);
-        float data = sqlite3_column_double(res, 2);
-        const char *timestamp = (const char *)sqlite3_column_text(res, 3);
+        char linebuf[256];
+        snprintf(linebuf, sizeof(linebuf), "%d", sqlite3_column_int(res, 0));
+        HPDF_Page_TextOut(page, x0, y, linebuf);
+        snprintf(linebuf, sizeof(linebuf), "%d", sqlite3_column_int(res, 1));
+        HPDF_Page_TextOut(page, x0 + 40, y, linebuf);
+        snprintf(linebuf, sizeof(linebuf), "%s", sqlite3_column_text(res, 2));
+        HPDF_Page_TextOut(page, x0 + 80, y, linebuf);
+        snprintf(linebuf, sizeof(linebuf), "%s", sqlite3_column_text(res, 3));
+        HPDF_Page_TextOut(page, x0 + 200, y, linebuf);
+        snprintf(linebuf, sizeof(linebuf), "%.1f/%.1f/%.1f", sqlite3_column_double(res, 4),
+                 sqlite3_column_double(res, 5), sqlite3_column_double(res, 6));
+        HPDF_Page_TextOut(page, x0 + 320, y, linebuf);
 
-        char buffer[256];
-        snprintf(buffer, sizeof(buffer), "%s", sensor_name);
-        HPDF_Page_TextOut(page, 50, y, buffer);
-
-        snprintf(buffer, sizeof(buffer), "%.2f", data);
-        HPDF_Page_TextOut(page, 200, y, buffer);
-
-        snprintf(buffer, sizeof(buffer), "%s", timestamp);
-        HPDF_Page_TextOut(page, 300, y, buffer);
-
-        y -= line_height;
+        y -= line;
         if (y < 50) {
             HPDF_Page_EndText(page);
             page = HPDF_AddPage(pdf);
             HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_PORTRAIT);
-            HPDF_Page_SetFontAndSize(page, font, 12);
+            HPDF_Page_SetFontAndSize(page, font, 9);
             HPDF_Page_BeginText(page);
-            y = page_height - 50;
+            y = HPDF_Page_GetHeight(page) - 40;
         }
     }
 
     HPDF_Page_EndText(page);
     sqlite3_finalize(res);
-    sqlite3_close(db);
+    aqm_db_close(db);
 
     HPDF_SaveToFile(pdf, PDF_FILE);
     HPDF_Free(pdf);
-
-    printf("PDF report generated successfully: %s\n", PDF_FILE);
+    printf("PDF report generated: %s\n", PDF_FILE);
 }
+
+#else
+
+void generate_pdf_report(void) {
+    fputs("PDF export is disabled in this build (compile with HAVE_HPDF and link libharu).\n", stderr);
+}
+
+#endif

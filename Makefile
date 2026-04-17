@@ -1,10 +1,12 @@
-# Name of the final executable
+# Air Quality Monitor — GCC/Clang (Linux, macOS, MSYS2/MinGW on Windows)
+
 TARGET = air_quality_monitor
 
-# List of all source files
 SRCS = main.c \
        globals.c \
-       create_database.c \
+       aqm_paths.c \
+       aqm_platform.c \
+       aqm_db.c \
        insert_data.c \
        fetch_data.c \
        alert_system.c \
@@ -18,22 +20,29 @@ SRCS = main.c \
        config_persistence.c \
        dht22.c
 
-# Compiler and flags
-CC = gcc
-CFLAGS = -Wall -Wextra
-LIBS = -lsqlite3 -lncurses -lhpdf
+CC ?= gcc
+CFLAGS = -Wall -Wextra -std=c99
 
-# Default rule
+# PDF via libharu: HAVE_HPDF=0 if libhpdf is not installed (typical on Windows unless you use vcpkg/MSYS).
+ifeq ($(OS),Windows_NT)
+  HAVE_HPDF ?= 0
+else
+  HAVE_HPDF ?= 1
+endif
+
+ifeq ($(HAVE_HPDF),1)
+  CFLAGS += -DHAVE_HPDF
+  LIBS = -lsqlite3 -lhpdf
+else
+  LIBS = -lsqlite3
+endif
+
+.PHONY: all clean
+
 all: $(TARGET)
 
-# Compile main program
 $(TARGET): $(SRCS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-# Clean compiled files
 clean:
-	rm -f $(TARGET) *.o *.so
-
-# Full clean, including backups and PDFs
-clean_all: clean
-	rm -f backup_*.db *.pdf config.cfg
+	rm -f $(TARGET) $(TARGET).exe *.o *.so

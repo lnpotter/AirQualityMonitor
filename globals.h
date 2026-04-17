@@ -18,7 +18,7 @@ extern int retention_period;
 // Structure to hold air quality data
 typedef struct {
     int sensor_id;
-    char timestamp[20];
+    char timestamp[32];
     float pm25;
     float pm10;
     float co;

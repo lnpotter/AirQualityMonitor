@@ -1,35 +1,31 @@
+#include "aqm_db.h"
 #include "globals.h"
 #include <stdio.h>
 #include <sqlite3.h>
-#include <time.h>
 
-#define DB_NAME "air_quality.db"
+void cleanup_old_data(void) {
+    sqlite3 *db = NULL;
+    if (aqm_db_open(&db) != 0)
+        return;
 
-void cleanup_old_data() {
-    sqlite3 *db;
-    char *err_msg = 0;
-
-    int rc = sqlite3_open(DB_NAME, &db);
-
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
+    char sql[160];
+    int n = snprintf(sql, sizeof(sql),
+                     "DELETE FROM readings WHERE measured_at < datetime('now', '-%d days');",
+                     retention_period);
+    if (n < 0 || (size_t)n >= sizeof(sql)) {
+        fprintf(stderr, "Invalid retention period.\n");
+        aqm_db_close(db);
         return;
     }
 
-    char sql[256];
-    snprintf(sql, sizeof(sql),
-             "DELETE FROM SensorData WHERE timestamp < datetime('now', '-%d days');", 
-             retention_period);
-
-    rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
-
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
-        sqlite3_free(err_msg);
+    char *err = NULL;
+    if (sqlite3_exec(db, sql, NULL, NULL, &err) != SQLITE_OK) {
+        fprintf(stderr, "Cleanup error: %s\n", err ? err : sqlite3_errmsg(db));
+        sqlite3_free(err);
     } else {
-        printf("Old data cleanup successful!\n");
+        int changes = sqlite3_changes(db);
+        printf("Cleanup complete. Rows removed: %d (retention: %d days).\n", changes, retention_period);
     }
 
-    sqlite3_close(db);
+    aqm_db_close(db);
 }

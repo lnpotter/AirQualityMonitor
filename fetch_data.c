@@ -1,46 +1,44 @@
+#include "aqm_db.h"
 #include <stdio.h>
 #include <sqlite3.h>
-#include <ncurses.h>
 
-#define DB_NAME "air_quality.db"
+void fetch_data(void) {
+    sqlite3 *db = NULL;
+    if (aqm_db_open(&db) != 0)
+        return;
 
-void fetch_data() {
-    sqlite3 *db;
-    sqlite3_stmt *res;
+    sqlite3_stmt *res = NULL;
+    const char *sql =
+        "SELECT r.id, r.sensor_id, s.name, r.measured_at, r.pm25, r.pm10, r.co, r.no2, r.o3, r.so2 "
+        "FROM readings r JOIN sensors s ON s.id = r.sensor_id "
+        "ORDER BY r.measured_at DESC LIMIT 200;";
 
-    int rc = sqlite3_open(DB_NAME, &db);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
+    if (sqlite3_prepare_v2(db, sql, -1, &res, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Query failed: %s\n", sqlite3_errmsg(db));
+        aqm_db_close(db);
         return;
     }
 
-    char *sql = "SELECT * FROM SensorData;";
+    printf("\n--- Recent readings (newest first, max 200) ---\n");
+    printf("%-6s %-4s %-20s %-19s %8s %8s %8s %8s %8s %8s\n", "id", "sid", "sensor", "measured_at", "pm25",
+           "pm10", "co", "no2", "o3", "so2");
 
-    rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "Failed to execute query: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
-        return;
-    }
-
-    initscr();
-    noecho();
-    cbreak();
-
-    printw("Sensor Data:\n");
     while (sqlite3_step(res) == SQLITE_ROW) {
-        const char *sensor_name = (const char *)sqlite3_column_text(res, 1);
-        float data = sqlite3_column_double(res, 2);
-        const char *timestamp = (const char *)sqlite3_column_text(res, 3);
+        int id = sqlite3_column_int(res, 0);
+        int sid = sqlite3_column_int(res, 1);
+        const char *sname = (const char *)sqlite3_column_text(res, 2);
+        const char *ts = (const char *)sqlite3_column_text(res, 3);
+        double pm25 = sqlite3_column_double(res, 4);
+        double pm10 = sqlite3_column_double(res, 5);
+        double co = sqlite3_column_double(res, 6);
+        double no2 = sqlite3_column_double(res, 7);
+        double o3 = sqlite3_column_double(res, 8);
+        double so2 = sqlite3_column_double(res, 9);
 
-        printw("Sensor: %s | Data: %.2f | Timestamp: %s\n", sensor_name, data, timestamp);
+        printf("%-6d %-4d %-20s %-19s %8.2f %8.2f %8.2f %8.4f %8.4f %8.4f\n", id, sid, sname ? sname : "",
+               ts ? ts : "", pm25, pm10, co, no2, o3, so2);
     }
-
-    refresh();
-    getch();
-    endwin();
 
     sqlite3_finalize(res);
-    sqlite3_close(db);
+    aqm_db_close(db);
 }
