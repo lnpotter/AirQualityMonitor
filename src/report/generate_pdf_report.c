@@ -113,7 +113,7 @@ static void draw_cover_page(HPDF_Doc pdf, HPDF_Font font_bold, HPDF_Font font,
     
     HPDF_Page_SetFontAndSize(page, font_bold, 18);
     HPDF_Page_BeginText(page);
-    HPDF_Page_TextOut(page, center_x - 100, 660, "Data Report");
+    HPDF_Page_TextOut(page, center_x - 60, 660, "Data Report");
     HPDF_Page_EndText(page);
     
     // Date
@@ -138,22 +138,22 @@ static void draw_cover_page(HPDF_Doc pdf, HPDF_Font font_bold, HPDF_Font font,
     // Summary box
     HPDF_Page_SetRGBStroke(page, 0.3, 0.3, 0.3);
     HPDF_Page_SetRGBFill(page, 0.95, 0.95, 0.95);
-    HPDF_Page_Rectangle(page, 80, 420, 450, 100);
+    HPDF_Page_Rectangle(page, 80, 400, 450, 120);
     HPDF_Page_FillStroke(page);
     
     HPDF_Page_SetFontAndSize(page, font_bold, 14);
     HPDF_Page_SetRGBFill(page, 0, 0, 0);
     HPDF_Page_BeginText(page);
-    HPDF_Page_TextOut(page, center_x - 50, 490, "SUMMARY");
+    HPDF_Page_TextOut(page, center_x - 50, 500, "SUMMARY");
     HPDF_Page_EndText(page);
     
     HPDF_Page_SetFontAndSize(page, font, 12);
     HPDF_Page_BeginText(page);
     char summary[256];
     snprintf(summary, sizeof(summary), "Total Sensors: %d", total_sensors);
-    HPDF_Page_TextOut(page, 100, 460, summary);
+    HPDF_Page_TextOut(page, 100, 470, summary);
     snprintf(summary, sizeof(summary), "Total Records: %d", total_records);
-    HPDF_Page_TextOut(page, 100, 440, summary);
+    HPDF_Page_TextOut(page, 100, 445, summary);
     snprintf(summary, sizeof(summary), "Total Alert Events: %d", total_alerts);
     HPDF_Page_TextOut(page, 100, 420, summary);
     HPDF_Page_EndText(page);
