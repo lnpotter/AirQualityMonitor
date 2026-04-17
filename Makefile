@@ -13,6 +13,7 @@ SRCS = $(SRC_DIR)/app/main.c \
        $(SRC_DIR)/core/aqm_db.c \
        $(SRC_DIR)/sensor/sensor_loader.c \
        $(SRC_DIR)/sensor/sensor_info.c \
+       $(SRC_DIR)/sensor/sensor_detector.c \
        $(SRC_DIR)/data/insert_data.c \
        $(SRC_DIR)/data/fetch_data.c \
        $(SRC_DIR)/report/alert_system.c \
