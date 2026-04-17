@@ -1,4 +1,4 @@
-#include "aqm_db.h"
+#include "core/aqm_db.h"
 #include <stdio.h>
 #include <sqlite3.h>
 
@@ -14,7 +14,7 @@ void generate_pdf_report(void) {
 
     sqlite3_stmt *res = NULL;
     const char *sql =
-        "SELECT r.id, r.sensor_id, s.name, r.measured_at, r.pm25, r.pm10, r.co, r.no2, r.o3, r.so2 "
+        "SELECT r.id, r.sensor_id, s.name, r.model, r.measured_at, r.pm25, r.pm10, r.co, r.no2, r.o3, r.so2 "
         "FROM readings r JOIN sensors s ON s.id = r.sensor_id "
         "ORDER BY r.measured_at ASC LIMIT 500;";
 
@@ -48,8 +48,9 @@ void generate_pdf_report(void) {
     HPDF_Page_TextOut(page, x0, y, "id");
     HPDF_Page_TextOut(page, x0 + 40, y, "sid");
     HPDF_Page_TextOut(page, x0 + 80, y, "sensor");
-    HPDF_Page_TextOut(page, x0 + 200, y, "time");
-    HPDF_Page_TextOut(page, x0 + 320, y, "pm25/pm10/co...");
+    HPDF_Page_TextOut(page, x0 + 170, y, "model");
+    HPDF_Page_TextOut(page, x0 + 250, y, "time");
+    HPDF_Page_TextOut(page, x0 + 390, y, "pm25/pm10/co...");
     y -= line;
 
     while (sqlite3_step(res) == SQLITE_ROW) {
@@ -61,10 +62,12 @@ void generate_pdf_report(void) {
         snprintf(linebuf, sizeof(linebuf), "%s", sqlite3_column_text(res, 2));
         HPDF_Page_TextOut(page, x0 + 80, y, linebuf);
         snprintf(linebuf, sizeof(linebuf), "%s", sqlite3_column_text(res, 3));
-        HPDF_Page_TextOut(page, x0 + 200, y, linebuf);
-        snprintf(linebuf, sizeof(linebuf), "%.1f/%.1f/%.1f", sqlite3_column_double(res, 4),
-                 sqlite3_column_double(res, 5), sqlite3_column_double(res, 6));
-        HPDF_Page_TextOut(page, x0 + 320, y, linebuf);
+        HPDF_Page_TextOut(page, x0 + 170, y, linebuf);
+        snprintf(linebuf, sizeof(linebuf), "%s", sqlite3_column_text(res, 4));
+        HPDF_Page_TextOut(page, x0 + 250, y, linebuf);
+        snprintf(linebuf, sizeof(linebuf), "%.1f/%.1f/%.1f", sqlite3_column_double(res, 5),
+                 sqlite3_column_double(res, 6), sqlite3_column_double(res, 7));
+        HPDF_Page_TextOut(page, x0 + 390, y, linebuf);
 
         y -= line;
         if (y < 50) {

@@ -59,10 +59,8 @@ AirQualityMonitor/
 ├── Makefile
 ├── README.md
 ├── include/
-│   ├── globals.h
-│   ├── sensor.h
-│   ├── sensor_loader.h
-│   └── ...other headers
+│   ├── core/          # db, paths, platform, globals
+│   └── sensor/        # plugin ABI/loader/runtime info headers
 ├── src/
 │   ├── app/
 │   │   └── main.c
@@ -106,13 +104,14 @@ CSV export writes `sensor_data.csv` in the **current working directory**. PDF ou
 
 ### Sensor selection (portable mocks)
 
-The collector supports a portable **mock** mode and an optional **DHT22** mode selected by an environment variable:
+The collector supports portable **mock** mode and plugin-backed sensors.
 
-- `AQM_SENSOR=mock` (default): generates realistic-ish pollutant values without requiring hardware.
-- `AQM_SENSOR=dht22|bme680|pms5003|mh-z19`: auto-resolves plugin path by OS extension (`.so`, `.dylib`, `.dll`) and loads it.
-- `AQM_SENSOR_PLUGIN=<path>`: loads a specific sensor module dynamically at runtime. When provided, this has priority over `AQM_SENSOR`.
+- Sensor runtime is configured in menu option **11. Configure sensor/plugin runtime** and persisted in `config.cfg`.
+- `sensor_mode`: `mock|dht22|bme680|pms5003|mh-z19`
+- `sensor_plugins_enabled`: `1|0` (enable/disable plugins globally)
+- `sensor_plugin_path`: optional explicit module path override
 
-**Current schema mapping for DHT22** (until we add dedicated columns): temperature (°C) is stored in `pm25`, and humidity (%) is stored in `pm10`.
+Each reading now stores `model` in the database (for example `DHT22`, `MH-Z19`, `mock`).
 
 ### Dynamic plugin architecture
 
@@ -145,7 +144,12 @@ Detailed authoring guide: `docs/plugins.md`.
 - `plugins/mhz19_plugin.c`
 
 These examples run in simulated mode (no hardware required), useful for CI/testing/portfolio demos.
-`dht22_plugin` supports hardware mode on Linux/Raspberry Pi when compiled with `HAVE_WIRINGPI=1`; otherwise it falls back to simulated mode.
+Hardware support in current plugins:
+
+- `dht22_plugin`: real GPIO read on Linux/Raspberry Pi with `HAVE_WIRINGPI=1`; fallback mock otherwise.
+- `mhz19_plugin`: real UART read on Linux/macOS (`MHZ19_DEVICE`, default `/dev/ttyS0`); fallback mock when device/read fails.
+- `pms5003_plugin`: real UART frame read on Linux/macOS (`PMS5003_DEVICE`, default `/dev/ttyUSB0`); fallback mock when device/read fails.
+- `bme680_plugin`: real read from Linux IIO/sysfs (`BME680_IIO_PATH` optional, otherwise auto-scan `/sys/bus/iio/devices`); fallback mock on unsupported systems or missing driver.
 
 Build plugin shared libraries:
 
@@ -154,6 +158,12 @@ make plugins
 ```
 
 On Linux this produces `.so`, on macOS `.dylib`, on Windows `.dll`.
+
+For DHT22 hardware mode:
+
+```sh
+make plugins HAVE_WIRINGPI=1
+```
 
 Run with a plugin:
 
@@ -173,13 +183,22 @@ $env:AQM_SENSOR_PLUGIN=".\plugins\bme680_plugin.dll"
 .\air_quality_monitor.exe
 ```
 
+### Real hardware connection quick notes
+
+- **DHT22**: VCC + GND + DATA to GPIO, with 4.7k-10k pull-up on DATA. Optional `DHT22_PIN` (wiringPi pin number), default `7`.
+- **MH-Z19**: UART TTL (`TX/RX/GND`) on serial adapter/UART pins. Set `MHZ19_DEVICE` (e.g. `/dev/ttyUSB0`).
+- **PMS5003**: UART TTL (`TX/RX/GND` + power). Set `PMS5003_DEVICE` (e.g. `/dev/ttyUSB0`).
+- **BME680**: I2C sensor with kernel driver exposing IIO files. Optionally set `BME680_IIO_PATH` directly (e.g. `/sys/bus/iio/devices/iio:device0`).
+
+If real reading fails, plugin automatically falls back to mock data so the app stays operational.
+
 ## Usage
 
 ```sh
 ./air_quality_monitor
 ```
 
-On first run, if no config exists, the program prompts for limits and interval settings, then saves them under `./data/config.cfg`.
+On first run, if no config exists, the program prompts for limits and settings, then saves them under `./data/config.cfg`.
 
 ### Menu
 
@@ -193,7 +212,10 @@ On first run, if no config exists, the program prompts for limits and interval s
 8. Generate PDF report (if built with libharu)  
 9. Configure limits and settings  
 10. Show sensor runtime info (active mode/env/plugin metadata)  
+11. Configure sensor/plugin runtime (enable/disable plugins, choose mode/path)  
 0. Exit  
+
+After each action, the program waits for Enter before returning to the menu.
 
 ## Branches
 

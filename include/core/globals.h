@@ -19,6 +19,7 @@ extern int retention_period;
 typedef struct {
     int sensor_id;
     char timestamp[32];
+    char model[64];
     float pm25;
     float pm10;
     float co;
@@ -26,5 +27,9 @@ typedef struct {
     float o3;
     float so2;
 } AirQualityData;
+
+extern int sensor_plugins_enabled;
+extern char sensor_mode[32];
+extern char sensor_plugin_path[256];
 
 #endif

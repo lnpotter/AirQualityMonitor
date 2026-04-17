@@ -1,4 +1,4 @@
-#include "../include/sensor.h"
+#include "../include/sensor/sensor.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -127,6 +127,18 @@ static int dht22_shutdown(void) {
 
 #endif
 
+static void fill_timestamp(char *buf, size_t len) {
+    time_t now = time(NULL);
+    struct tm *ptm = localtime(&now);
+    if (!ptm) {
+        snprintf(buf, len, "1970-01-01 00:00:00");
+        return;
+    }
+    if (strftime(buf, len, "%Y-%m-%d %H:%M:%S", ptm) == 0) {
+        snprintf(buf, len, "1970-01-01 00:00:00");
+    }
+}
+
 static int dht22_read_sample(AirQualityData *out) {
     if (!out)
         return -1;
@@ -135,15 +147,10 @@ static int dht22_read_sample(AirQualityData *out) {
     if (dht22_read(&t, &h) != 0)
         return -1;
 
-    time_t now = time(NULL);
-    struct tm *ptm = localtime(&now);
-    if (!ptm)
-        return -1;
-
     memset(out, 0, sizeof(*out));
     out->sensor_id = 22;
-    snprintf(out->timestamp, sizeof(out->timestamp), "%04d-%02d-%02d %02d:%02d:%02d", ptm->tm_year + 1900,
-             ptm->tm_mon + 1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec);
+    snprintf(out->model, sizeof(out->model), "DHT22");
+    fill_timestamp(out->timestamp, sizeof(out->timestamp));
 
     // Current schema doesn't have temperature/humidity fields; map into pm25/pm10 for now.
     out->pm25 = t;

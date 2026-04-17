@@ -1,5 +1,5 @@
-#include "aqm_platform.h"
-#include "globals.h"
+#include "core/aqm_platform.h"
+#include "core/globals.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,5 +1,5 @@
-#include "aqm_paths.h"
-#include "aqm_platform.h"
+#include "core/aqm_paths.h"
+#include "core/aqm_platform.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

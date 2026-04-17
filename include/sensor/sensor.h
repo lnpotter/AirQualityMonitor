@@ -1,7 +1,7 @@
 #ifndef SENSOR_H
 #define SENSOR_H
 
-#include "globals.h"
+#include "core/globals.h"
 
 typedef struct {
     char name[50];

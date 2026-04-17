@@ -1,5 +1,5 @@
-#include "aqm_db.h"
-#include "aqm_paths.h"
+#include "core/aqm_db.h"
+#include "core/aqm_paths.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +26,26 @@ static int table_exists(sqlite3 *db, const char *name) {
     return exists;
 }
 
+static int column_exists(sqlite3 *db, const char *table, const char *column) {
+    sqlite3_stmt *st = NULL;
+    char sql[128];
+    int n = snprintf(sql, sizeof(sql), "PRAGMA table_info(%s);", table);
+    if (n < 0 || (size_t)n >= sizeof(sql))
+        return 0;
+    if (sqlite3_prepare_v2(db, sql, -1, &st, NULL) != SQLITE_OK)
+        return 0;
+    int found = 0;
+    while (sqlite3_step(st) == SQLITE_ROW) {
+        const char *name = (const char *)sqlite3_column_text(st, 1);
+        if (name && strcmp(name, column) == 0) {
+            found = 1;
+            break;
+        }
+    }
+    sqlite3_finalize(st);
+    return found;
+}
+
 static int migrate_legacy_sensor_data(sqlite3 *db) {
     if (!table_exists(db, "SensorData"))
         return 0;
@@ -41,8 +61,8 @@ static int migrate_legacy_sensor_data(sqlite3 *db) {
     }
 
     if (exec_sql(db,
-                 "INSERT INTO readings (sensor_id, measured_at, pm25, pm10, co, no2, o3, so2) "
-                 "SELECT sensor_id, timestamp, pm25, pm10, co, no2, o3, so2 FROM SensorData;") != 0) {
+                 "INSERT INTO readings (sensor_id, measured_at, model, pm25, pm10, co, no2, o3, so2) "
+                 "SELECT sensor_id, timestamp, 'legacy', pm25, pm10, co, no2, o3, so2 FROM SensorData;") != 0) {
         exec_sql(db, "PRAGMA foreign_keys = ON;");
         return -1;
     }
@@ -100,6 +120,7 @@ int aqm_db_init(void) {
         "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "  sensor_id INTEGER NOT NULL,"
         "  measured_at TEXT NOT NULL,"
+        "  model TEXT NOT NULL DEFAULT '',"
         "  pm25 REAL NOT NULL,"
         "  pm10 REAL NOT NULL,"
         "  co REAL NOT NULL,"
@@ -118,6 +139,21 @@ int aqm_db_init(void) {
             aqm_db_close(db);
             return -1;
         }
+    }
+
+    if (!column_exists(db, "readings", "model")) {
+        if (exec_sql(db, "ALTER TABLE readings ADD COLUMN model TEXT NOT NULL DEFAULT '';") != 0) {
+            aqm_db_close(db);
+            return -1;
+        }
+    }
+    if (exec_sql(db,
+                 "UPDATE readings "
+                 "SET model = CASE WHEN model IS NULL OR model = '' THEN "
+                 "COALESCE((SELECT s.name FROM sensors s WHERE s.id = readings.sensor_id), 'unknown') "
+                 "ELSE model END;") != 0) {
+        aqm_db_close(db);
+        return -1;
     }
 
     if (migrate_legacy_sensor_data(db) != 0) {

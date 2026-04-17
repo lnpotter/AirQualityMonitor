@@ -26,10 +26,10 @@ SRCS = $(SRC_DIR)/app/main.c \
        $(SRC_DIR)/config/config_persistence.c
 
 CC ?= gcc
-CFLAGS = -Wall -Wextra -std=c99 -I$(INC_DIR)
+CFLAGS = -Wall -Wextra -std=c99 -I$(INC_DIR) -I$(INC_DIR)/core -I$(INC_DIR)/sensor
 
 LIBS = -lsqlite3
-SHARED_CFLAGS = -Wall -Wextra -std=c99 -I$(INC_DIR)
+SHARED_CFLAGS = -Wall -Wextra -std=c99 -I$(INC_DIR) -I$(INC_DIR)/core -I$(INC_DIR)/sensor
 
 ifeq ($(OS),Windows_NT)
   PLUGIN_EXT = dll
@@ -74,16 +74,16 @@ plugins: $(PLUGIN_DIR)/dht22_plugin.$(PLUGIN_EXT) $(PLUGIN_DIR)/bme680_plugin.$(
 $(TARGET): $(SRCS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-$(PLUGIN_DIR)/dht22_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/dht22_plugin.c $(INC_DIR)/sensor.h $(INC_DIR)/globals.h
+$(PLUGIN_DIR)/dht22_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/dht22_plugin.c $(INC_DIR)/sensor/sensor.h $(INC_DIR)/core/globals.h
 	$(CC) $(SHARED_CFLAGS) $(SHARED_FLAGS) -o $@ $<
 
-$(PLUGIN_DIR)/bme680_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/bme680_plugin.c $(INC_DIR)/sensor.h $(INC_DIR)/globals.h
+$(PLUGIN_DIR)/bme680_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/bme680_plugin.c $(INC_DIR)/sensor/sensor.h $(INC_DIR)/core/globals.h
 	$(CC) $(SHARED_CFLAGS) $(SHARED_FLAGS) -o $@ $<
 
-$(PLUGIN_DIR)/pms5003_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/pms5003_plugin.c $(INC_DIR)/sensor.h $(INC_DIR)/globals.h
+$(PLUGIN_DIR)/pms5003_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/pms5003_plugin.c $(INC_DIR)/sensor/sensor.h $(INC_DIR)/core/globals.h
 	$(CC) $(SHARED_CFLAGS) $(SHARED_FLAGS) -o $@ $<
 
-$(PLUGIN_DIR)/mhz19_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/mhz19_plugin.c $(INC_DIR)/sensor.h $(INC_DIR)/globals.h
+$(PLUGIN_DIR)/mhz19_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/mhz19_plugin.c $(INC_DIR)/sensor/sensor.h $(INC_DIR)/core/globals.h
 	$(CC) $(SHARED_CFLAGS) $(SHARED_FLAGS) -o $@ $<
 
 clean:

@@ -1,7 +1,7 @@
 #ifndef SENSOR_LOADER_H
 #define SENSOR_LOADER_H
 
-#include "sensor.h"
+#include "sensor/sensor.h"
 
 typedef struct {
     void *handle;

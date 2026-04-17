@@ -1,6 +1,6 @@
-#include "aqm_paths.h"
-#include "aqm_platform.h"
-#include "globals.h"
+#include "core/aqm_paths.h"
+#include "core/aqm_platform.h"
+#include "core/globals.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +26,9 @@ void save_config(void) {
     fprintf(file, "limit_so2=%.6f\n", limit_so2);
     fprintf(file, "collection_interval=%d\n", collection_interval);
     fprintf(file, "retention_period=%d\n", retention_period);
+    fprintf(file, "sensor_plugins_enabled=%d\n", sensor_plugins_enabled);
+    fprintf(file, "sensor_mode=%s\n", sensor_mode);
+    fprintf(file, "sensor_plugin_path=%s\n", sensor_plugin_path);
 
     fclose(file);
     printf("Configuration saved to %s\n", path);
@@ -69,6 +72,12 @@ int load_config(void) {
             collection_interval = atoi(value);
         else if (strcmp(key, "retention_period") == 0)
             retention_period = atoi(value);
+        else if (strcmp(key, "sensor_plugins_enabled") == 0)
+            sensor_plugins_enabled = atoi(value) ? 1 : 0;
+        else if (strcmp(key, "sensor_mode") == 0)
+            snprintf(sensor_mode, sizeof(sensor_mode), "%s", value);
+        else if (strcmp(key, "sensor_plugin_path") == 0)
+            snprintf(sensor_plugin_path, sizeof(sensor_plugin_path), "%s", value);
     }
 
     fclose(file);

@@ -1,6 +1,6 @@
-#include "aqm_db.h"
-#include "aqm_paths.h"
-#include "aqm_platform.h"
+#include "core/aqm_db.h"
+#include "core/aqm_paths.h"
+#include "core/aqm_platform.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,7 +34,21 @@ void backup_database(void) {
         return;
     }
 
-    snprintf(dest_path, sizeof(dest_path), "%s%sbackup_%s_air_quality.db", base, AQM_PATH_SEP, stamp);
+    {
+        const char *prefix = "backup_";
+        const char *suffix = "_air_quality.db";
+        size_t need = strlen(base) + strlen(AQM_PATH_SEP) + strlen(prefix) + strlen(stamp) + strlen(suffix) + 1;
+        if (need > sizeof(dest_path)) {
+            fprintf(stderr, "Backup path is too long.\n");
+            aqm_db_close(src);
+            return;
+        }
+        strcpy(dest_path, base);
+        strcat(dest_path, AQM_PATH_SEP);
+        strcat(dest_path, prefix);
+        strcat(dest_path, stamp);
+        strcat(dest_path, suffix);
+    }
 
     if (sqlite3_open(dest_path, &dest) != SQLITE_OK) {
         fprintf(stderr, "Cannot create backup file: %s\n", sqlite3_errmsg(dest));

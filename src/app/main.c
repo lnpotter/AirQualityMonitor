@@ -1,10 +1,11 @@
-#include "aqm_db.h"
-#include "aqm_paths.h"
-#include "aqm_platform.h"
-#include "globals.h"
-#include "sensor_info.h"
+#include "core/aqm_db.h"
+#include "core/aqm_paths.h"
+#include "core/aqm_platform.h"
+#include "core/globals.h"
+#include "sensor/sensor_info.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 void fetch_data(void);
@@ -20,6 +21,8 @@ void insert_data(AirQualityData data);
 int load_config(void);
 void save_config(void);
 void show_menu(void);
+void configure_sensor_runtime(void);
+void wait_for_menu_return(void);
 
 int main(void) {
     aqm_paths_init();
@@ -57,6 +60,7 @@ void show_menu(void) {
         printf("8. Generate PDF report\n");
         printf("9. Configure limits and settings\n");
         printf("10. Show sensor runtime info\n");
+        printf("11. Configure sensor/plugin runtime\n");
         printf("0. Exit\n");
         printf("Select an option: ");
 
@@ -99,6 +103,10 @@ void show_menu(void) {
             case 10:
                 show_sensor_runtime_info();
                 break;
+            case 11:
+                configure_sensor_runtime();
+                save_config();
+                break;
             case 0:
                 printf("Exiting program...\n");
                 break;
@@ -106,5 +114,63 @@ void show_menu(void) {
                 printf("Invalid option. Try again.\n");
         }
 
+        if (option != 0)
+            wait_for_menu_return();
     } while (option != 0);
+}
+
+void wait_for_menu_return(void) {
+    char input[8];
+    printf("\nPress Enter to return to the menu...");
+    (void)fgets(input, sizeof(input), stdin);
+}
+
+void configure_sensor_runtime(void) {
+    const char *allowed_modes[] = {"mock", "dht22", "bme680", "pms5003", "mh-z19", "mhz19"};
+    const size_t allowed_count = sizeof(allowed_modes) / sizeof(allowed_modes[0]);
+    char input[256];
+
+    printf("\nSensor/plugin runtime configuration:\n");
+    printf("Current mode: %s\n", sensor_mode);
+    printf("Plugins enabled: %s\n", sensor_plugins_enabled ? "yes" : "no");
+    printf("Custom plugin path: %s\n", sensor_plugin_path[0] ? sensor_plugin_path : "(none)");
+
+    printf("Enable plugins? (1=yes, 0=no, Enter=keep): ");
+    if (fgets(input, sizeof(input), stdin) && input[0] != '\n')
+        sensor_plugins_enabled = atoi(input) ? 1 : 0;
+
+    printf("Sensor mode [mock|dht22|bme680|pms5003|mh-z19] (Enter=keep): ");
+    if (fgets(input, sizeof(input), stdin) && input[0] != '\n') {
+        aqm_trim_crlf(input);
+        if (input[0]) {
+            int ok = 0;
+            for (size_t i = 0; i < allowed_count; i++) {
+                if (strcmp(input, allowed_modes[i]) == 0) {
+                    ok = 1;
+                    break;
+                }
+            }
+            if (ok) {
+                size_t n = strlen(input);
+                if (n >= sizeof(sensor_mode))
+                    n = sizeof(sensor_mode) - 1;
+                memcpy(sensor_mode, input, n);
+                sensor_mode[n] = '\0';
+            } else {
+                printf("Invalid sensor mode. Keeping current mode.\n");
+            }
+        }
+    }
+
+    printf("Custom plugin path (Enter=keep, '-'=clear): ");
+    if (fgets(input, sizeof(input), stdin) && input[0] != '\n') {
+        aqm_trim_crlf(input);
+        if (strcmp(input, "-") == 0) {
+            sensor_plugin_path[0] = '\0';
+        } else if (input[0]) {
+            snprintf(sensor_plugin_path, sizeof(sensor_plugin_path), "%s", input);
+        }
+    }
+
+    printf("Runtime sensor settings updated.\n");
 }

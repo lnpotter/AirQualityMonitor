@@ -1,6 +1,6 @@
-#include "aqm_platform.h"
-#include "globals.h"
-#include "sensor_loader.h"
+#include "core/aqm_platform.h"
+#include "core/globals.h"
+#include "sensor/sensor_loader.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,19 +8,18 @@
 
 static void mock_generate_air_quality(AirQualityData *data);
 static const char *resolve_default_plugin_path(const char *mode);
+static void fill_timestamp(char *buf, size_t len);
 void insert_data(AirQualityData data);
 
 void interval_collection(void) {
-    const char *mode = getenv("AQM_SENSOR");
-    const char *plugin_path_env = getenv("AQM_SENSOR_PLUGIN");
-    if (!mode || !mode[0])
-        mode = "mock";
+    const char *mode = sensor_mode[0] ? sensor_mode : "mock";
+    const char *plugin_path_env = sensor_plugin_path[0] ? sensor_plugin_path : NULL;
 
     const char *plugin_path = plugin_path_env && plugin_path_env[0] ? plugin_path_env : resolve_default_plugin_path(mode);
     SensorModule module;
     int use_plugin = 0;
 
-    if (plugin_path) {
+    if (sensor_plugins_enabled && plugin_path) {
         if (sensor_module_load(plugin_path, &module) == 0) {
             if (module.plugin->init() == 0) {
                 use_plugin = 1;
@@ -66,6 +65,8 @@ void interval_collection(void) {
             if (module.plugin->read_sample(&data) != 0) {
                 fprintf(stderr, "Plugin read failed (%s); using mock sample.\n", module.plugin->name);
                 mock_generate_air_quality(&data);
+            } else if (!data.model[0]) {
+                snprintf(data.model, sizeof(data.model), "%s", module.plugin->name);
             }
         } else {
             mock_generate_air_quality(&data);
@@ -84,14 +85,8 @@ void interval_collection(void) {
 
 static void mock_generate_air_quality(AirQualityData *data) {
     data->sensor_id = (rand() % 10) + 1;
-    time_t t = time(NULL);
-    struct tm *ptm = localtime(&t);
-    if (!ptm) {
-        snprintf(data->timestamp, sizeof(data->timestamp), "1970-01-01 00:00:00");
-        return;
-    }
-    snprintf(data->timestamp, sizeof(data->timestamp), "%04d-%02d-%02d %02d:%02d:%02d", ptm->tm_year + 1900,
-             ptm->tm_mon + 1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec);
+    snprintf(data->model, sizeof(data->model), "mock");
+    fill_timestamp(data->timestamp, sizeof(data->timestamp));
 
     data->pm25 = (float)((rand() % 1000) / 10.0);
     data->pm10 = (float)((rand() % 1000) / 10.0);
@@ -99,6 +94,18 @@ static void mock_generate_air_quality(AirQualityData *data) {
     data->no2 = (float)((rand() % 1000) / 1000.0);
     data->o3 = (float)((rand() % 1000) / 1000.0);
     data->so2 = (float)((rand() % 1000) / 1000.0);
+}
+
+static void fill_timestamp(char *buf, size_t len) {
+    time_t t = time(NULL);
+    struct tm *ptm = localtime(&t);
+    if (!ptm) {
+        snprintf(buf, len, "1970-01-01 00:00:00");
+        return;
+    }
+    if (strftime(buf, len, "%Y-%m-%d %H:%M:%S", ptm) == 0) {
+        snprintf(buf, len, "1970-01-01 00:00:00");
+    }
 }
 
 static const char *resolve_default_plugin_path(const char *mode) {

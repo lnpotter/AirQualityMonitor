@@ -1,5 +1,5 @@
-#include "aqm_db.h"
-#include "globals.h"
+#include "core/aqm_db.h"
+#include "core/globals.h"
 #include <stdio.h>
 #include <sqlite3.h>
 
@@ -43,6 +43,21 @@ static int ensure_sensor(sqlite3 *db, int sensor_id) {
     return 0;
 }
 
+static const char *default_model_name(int sensor_id) {
+    switch (sensor_id) {
+        case 22:
+            return "DHT22";
+        case 680:
+            return "BME680";
+        case 5003:
+            return "PMS5003";
+        case 1900:
+            return "MH-Z19";
+        default:
+            return "unknown";
+    }
+}
+
 void insert_data(AirQualityData data) {
     sqlite3 *db = NULL;
     if (aqm_db_open(&db) != 0)
@@ -54,8 +69,8 @@ void insert_data(AirQualityData data) {
     }
 
     sqlite3_stmt *st = NULL;
-    const char *sql = "INSERT INTO readings (sensor_id, measured_at, pm25, pm10, co, no2, o3, so2) "
-                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?);";
+    const char *sql = "INSERT INTO readings (sensor_id, measured_at, model, pm25, pm10, co, no2, o3, so2) "
+                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
     if (sqlite3_prepare_v2(db, sql, -1, &st, NULL) != SQLITE_OK) {
         fprintf(stderr, "SQLite prepare error: %s\n", sqlite3_errmsg(db));
@@ -65,12 +80,14 @@ void insert_data(AirQualityData data) {
 
     sqlite3_bind_int(st, 1, data.sensor_id);
     sqlite3_bind_text(st, 2, data.timestamp, -1, SQLITE_STATIC);
-    sqlite3_bind_double(st, 3, (double)data.pm25);
-    sqlite3_bind_double(st, 4, (double)data.pm10);
-    sqlite3_bind_double(st, 5, (double)data.co);
-    sqlite3_bind_double(st, 6, (double)data.no2);
-    sqlite3_bind_double(st, 7, (double)data.o3);
-    sqlite3_bind_double(st, 8, (double)data.so2);
+    const char *model = data.model[0] ? data.model : default_model_name(data.sensor_id);
+    sqlite3_bind_text(st, 3, model, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_double(st, 4, (double)data.pm25);
+    sqlite3_bind_double(st, 5, (double)data.pm10);
+    sqlite3_bind_double(st, 6, (double)data.co);
+    sqlite3_bind_double(st, 7, (double)data.no2);
+    sqlite3_bind_double(st, 8, (double)data.o3);
+    sqlite3_bind_double(st, 9, (double)data.so2);
 
     int rc = sqlite3_step(st);
     sqlite3_finalize(st);

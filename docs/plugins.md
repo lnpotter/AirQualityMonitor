@@ -4,7 +4,7 @@ This project supports runtime-loadable sensor modules on Linux, macOS, and Windo
 
 ## ABI Contract
 
-Plugins must include `include/sensor.h` and export this symbol:
+Plugins must include `include/sensor/sensor.h` and export this symbol:
 
 ```c
 SensorPlugin sensor_plugin;
@@ -24,7 +24,7 @@ If ABI validation fails, the loader rejects the plugin.
 ## Minimal Plugin Template
 
 ```c
-#include "../include/sensor.h"
+#include "../include/sensor/sensor.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
