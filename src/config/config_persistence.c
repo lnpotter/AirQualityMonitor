@@ -29,6 +29,14 @@ void save_config(void) {
     fprintf(file, "sensor_plugins_enabled=%d\n", sensor_plugins_enabled);
     fprintf(file, "sensor_mode=%s\n", sensor_mode);
     fprintf(file, "sensor_plugin_path=%s\n", sensor_plugin_path);
+    
+    // Save multi-sensor configurations
+    fprintf(file, "active_sensor_count=%d\n", active_sensor_count);
+    for (int i = 0; i < active_sensor_count; i++) {
+        fprintf(file, "sensor_%d_mode=%s\n", i, sensor_configs[i].mode);
+        fprintf(file, "sensor_%d_path=%s\n", i, sensor_configs[i].plugin_path);
+        fprintf(file, "sensor_%d_enabled=%d\n", i, sensor_configs[i].enabled);
+    }
 
     fclose(file);
     printf("Configuration saved to %s\n", path);
@@ -43,6 +51,8 @@ int load_config(void) {
     if (file == NULL)
         return 0;
 
+    init_sensor_configs();
+    
     char line[256];
     while (fgets(line, sizeof(line), file)) {
         aqm_trim_crlf(line);
@@ -78,6 +88,21 @@ int load_config(void) {
             snprintf(sensor_mode, sizeof(sensor_mode), "%s", value);
         else if (strcmp(key, "sensor_plugin_path") == 0)
             snprintf(sensor_plugin_path, sizeof(sensor_plugin_path), "%s", value);
+        else if (strcmp(key, "active_sensor_count") == 0)
+            active_sensor_count = atoi(value);
+        else if (strncmp(key, "sensor_", 7) == 0) {
+            // Parse sensor_N_mode, sensor_N_path, sensor_N_enabled
+            int idx = -1;
+            char suffix[32] = {0};
+            if (sscanf(key, "sensor_%d_%s", &idx, suffix) == 2 && idx >= 0 && idx < MAX_SENSORS) {
+                if (strcmp(suffix, "mode") == 0)
+                    snprintf(sensor_configs[idx].mode, sizeof(sensor_configs[idx].mode), "%s", value);
+                else if (strcmp(suffix, "path") == 0)
+                    snprintf(sensor_configs[idx].plugin_path, sizeof(sensor_configs[idx].plugin_path), "%s", value);
+                else if (strcmp(suffix, "enabled") == 0)
+                    sensor_configs[idx].enabled = atoi(value) ? 1 : 0;
+            }
+        }
     }
 
     fclose(file);
