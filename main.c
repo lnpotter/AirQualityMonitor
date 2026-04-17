@@ -3,6 +3,7 @@
 #include "aqm_platform.h"
 #include "globals.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 void fetch_data(void);

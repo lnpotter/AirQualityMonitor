@@ -12,8 +12,23 @@ static int ensure_sensor(sqlite3 *db, int sensor_id) {
     }
     char name[64];
     const char *forced_name = NULL;
-    if (sensor_id == 22)
-        forced_name = "DHT22";
+    switch (sensor_id) {
+        case 22:
+            forced_name = "DHT22";
+            break;
+        case 680:
+            forced_name = "BME680";
+            break;
+        case 5003:
+            forced_name = "PMS5003";
+            break;
+        case 1900:
+            forced_name = "MH-Z19";
+            break;
+        default:
+            forced_name = NULL;
+            break;
+    }
 
     int n = forced_name ? snprintf(name, sizeof(name), "%s", forced_name)
                         : snprintf(name, sizeof(name), "Sensor %d", sensor_id);

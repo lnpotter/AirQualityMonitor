@@ -13,6 +13,7 @@ Legacy code (pre–refactor snapshot) is preserved on the **`legacy`** branch; a
 - **Safe SQL**: parameterized inserts; SQLite backup API for database copies (no `cp` / `copy` shell commands).
 - **Pollutant limits** with alerts evaluated against the **latest** stored sample.
 - **Collection**: simulated readings at a configurable interval (count prompted at runtime).
+- **Dynamic sensor modules**: runtime-loaded plugins (`dlopen` on Linux/macOS, `LoadLibrary` on Windows) via `AQM_SENSOR_PLUGIN`.
 - **Export**: CSV with correct column semantics.
 - **Statistics**: per-sensor aggregates (avg / max / min) for each pollutant.
 - **Optional PDF**: built when compiled with `HAVE_HPDF` and linked against libharu.
@@ -25,7 +26,7 @@ Legacy code (pre–refactor snapshot) is preserved on the **`legacy`** branch; a
 | SQLite 3   | Yes      | Development headers (`libsqlite3-dev`, `sqlite-devel`, MSYS `pacman -S mingw-w64-x86_64-sqlite`, etc.) |
 | libharu    | Optional | For PDF menu item; omit with `make HAVE_HPDF=0` |
 
-**Removed / optional vs old README**: `ncurses`, `wiringPi`, and dynamic loading via `dlopen` are no longer required for the default build (simpler Windows/macOS/Linux parity).
+**Optional dependencies**: the default build runs without GPIO libraries; `wiringPi` and dynamic sensor plugins are optional capabilities.
 
 ### Debian / Ubuntu (example)
 
@@ -106,8 +107,60 @@ The collector supports a portable **mock** mode and an optional **DHT22** mode s
 
 - `AQM_SENSOR=mock` (default): generates realistic-ish pollutant values without requiring hardware.
 - `AQM_SENSOR=dht22`: reads a DHT22 if the build enables wiringPi, otherwise uses a simulated DHT22 so the program still runs on Windows/macOS/Linux.
+- `AQM_SENSOR_PLUGIN=<path>`: loads a sensor module dynamically at runtime. When provided, plugin mode has priority over `AQM_SENSOR`.
 
 **Current schema mapping for DHT22** (until we add dedicated columns): temperature (°C) is stored in `pm25`, and humidity (%) is stored in `pm10`.
+
+### Dynamic plugin architecture
+
+Runtime flow:
+
+`Program -> load shared module -> resolve sensor_plugin symbol -> init/read/shutdown -> unload module`
+
+Cross-platform loader:
+
+- Linux/macOS: `dlopen` / `dlsym` / `dlclose`
+- Windows: `LoadLibrary` / `GetProcAddress` / `FreeLibrary`
+
+ABI contract is defined in `sensor.h` (`SensorPlugin`). A plugin must export:
+
+```c
+SensorPlugin sensor_plugin;
+```
+
+### Example plugins included
+
+- `plugins/bme680_plugin.c`
+- `plugins/pms5003_plugin.c`
+- `plugins/mhz19_plugin.c`
+
+These examples run in simulated mode (no hardware required), useful for CI/testing/portfolio demos.
+
+Build plugin shared libraries:
+
+```sh
+make plugins
+```
+
+On Linux this produces `.so`, on macOS `.dylib`, on Windows `.dll`.
+
+Run with a plugin:
+
+```sh
+# Linux example
+AQM_SENSOR_PLUGIN=./plugins/bme680_plugin.so ./air_quality_monitor
+```
+
+```sh
+# macOS example
+AQM_SENSOR_PLUGIN=./plugins/bme680_plugin.dylib ./air_quality_monitor
+```
+
+```powershell
+# Windows PowerShell example
+$env:AQM_SENSOR_PLUGIN=".\plugins\bme680_plugin.dll"
+.\air_quality_monitor.exe
+```
 
 ## Usage
 

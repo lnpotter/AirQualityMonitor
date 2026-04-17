@@ -1,6 +1,7 @@
 #include "aqm_platform.h"
 #include "dht22.h"
 #include "globals.h"
+#include "sensor_loader.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,11 +12,28 @@ void insert_data(AirQualityData data);
 
 void interval_collection(void) {
     const char *mode = getenv("AQM_SENSOR");
+    const char *plugin_path = getenv("AQM_SENSOR_PLUGIN");
     if (!mode || !mode[0])
         mode = "mock";
 
     int use_dht22 = strcmp(mode, "dht22") == 0;
-    if (use_dht22) {
+    SensorModule module;
+    int use_plugin = 0;
+
+    if (plugin_path && plugin_path[0]) {
+        if (sensor_module_load(plugin_path, &module) == 0) {
+            if (module.plugin->init() == 0) {
+                use_plugin = 1;
+            } else {
+                fprintf(stderr, "Plugin init failed; ignoring plugin: %s\n", plugin_path);
+                sensor_module_unload(&module);
+            }
+        } else {
+            fprintf(stderr, "Could not load plugin from %s. Continuing with builtin sensors.\n", plugin_path);
+        }
+    }
+
+    if (!use_plugin && use_dht22) {
         if (dht22_init() != 0) {
             fprintf(stderr, "DHT22 init failed; falling back to mock.\n");
             use_dht22 = 0;
@@ -23,12 +41,19 @@ void interval_collection(void) {
     }
 
     printf("Samples to collect (>=1). Interval between samples: %d s.\n", collection_interval);
-    printf("Sensor mode: %s\n", use_dht22 ? "dht22" : "mock");
+    if (use_plugin)
+        printf("Sensor mode: plugin (%s)\n", module.plugin->name);
+    else
+        printf("Sensor mode: %s\n", use_dht22 ? "dht22" : "mock");
     printf("How many samples? ");
     int count = 0;
     if (scanf("%d", &count) != 1 || count < 1) {
         aqm_flush_stdin();
         printf("Invalid count; aborting.\n");
+        if (use_plugin) {
+            module.plugin->shutdown();
+            sensor_module_unload(&module);
+        }
         if (use_dht22)
             dht22_shutdown();
         return;
@@ -37,12 +62,21 @@ void interval_collection(void) {
 
     if (collection_interval < 1) {
         printf("collection_interval must be >= 1 (check configuration).\n");
+        if (use_plugin) {
+            module.plugin->shutdown();
+            sensor_module_unload(&module);
+        }
         return;
     }
 
     for (int i = 0; i < count; i++) {
         AirQualityData data;
-        if (use_dht22) {
+        if (use_plugin) {
+            if (module.plugin->read_sample(&data) != 0) {
+                fprintf(stderr, "Plugin read failed (%s); using mock sample.\n", module.plugin->name);
+                mock_generate_air_quality(&data);
+            }
+        } else if (use_dht22) {
             if (dht22_read_sample(&data) != 0) {
                 fprintf(stderr, "DHT22 read failed; using mock sample.\n");
                 mock_generate_air_quality(&data);
@@ -56,6 +90,10 @@ void interval_collection(void) {
     }
 
     printf("Data collection finished (%d sample(s)).\n", count);
+    if (use_plugin) {
+        module.plugin->shutdown();
+        sensor_module_unload(&module);
+    }
     if (use_dht22)
         dht22_shutdown();
 }
