@@ -2,30 +2,34 @@
 
 TARGET = air_quality_monitor
 
-SRCS = main.c \
-       globals.c \
-       aqm_paths.c \
-       aqm_platform.c \
-       aqm_db.c \
-       sensor_loader.c \
-       insert_data.c \
-       fetch_data.c \
-       alert_system.c \
-       export_to_csv.c \
-       configure_limits.c \
-       generate_statistics.c \
-       backup_database.c \
-       data_cleanup.c \
-       interval_collection.c \
-       generate_pdf_report.c \
-       config_persistence.c \
-       dht22.c
+SRC_DIR = src
+INC_DIR = include
+PLUGIN_DIR = plugins
+
+SRCS = $(SRC_DIR)/main.c \
+       $(SRC_DIR)/globals.c \
+       $(SRC_DIR)/aqm_paths.c \
+       $(SRC_DIR)/aqm_platform.c \
+       $(SRC_DIR)/aqm_db.c \
+       $(SRC_DIR)/sensor_loader.c \
+       $(SRC_DIR)/sensor_info.c \
+       $(SRC_DIR)/insert_data.c \
+       $(SRC_DIR)/fetch_data.c \
+       $(SRC_DIR)/alert_system.c \
+       $(SRC_DIR)/export_to_csv.c \
+       $(SRC_DIR)/configure_limits.c \
+       $(SRC_DIR)/generate_statistics.c \
+       $(SRC_DIR)/backup_database.c \
+       $(SRC_DIR)/data_cleanup.c \
+       $(SRC_DIR)/interval_collection.c \
+       $(SRC_DIR)/generate_pdf_report.c \
+       $(SRC_DIR)/config_persistence.c
 
 CC ?= gcc
-CFLAGS = -Wall -Wextra -std=c99
+CFLAGS = -Wall -Wextra -std=c99 -I$(INC_DIR)
 
 LIBS = -lsqlite3
-SHARED_CFLAGS = -Wall -Wextra -std=c99
+SHARED_CFLAGS = -Wall -Wextra -std=c99 -I$(INC_DIR)
 
 ifeq ($(OS),Windows_NT)
   PLUGIN_EXT = dll
@@ -65,18 +69,21 @@ endif
 
 all: $(TARGET)
 
-plugins: plugins/bme680_plugin.$(PLUGIN_EXT) plugins/pms5003_plugin.$(PLUGIN_EXT) plugins/mhz19_plugin.$(PLUGIN_EXT)
+plugins: $(PLUGIN_DIR)/dht22_plugin.$(PLUGIN_EXT) $(PLUGIN_DIR)/bme680_plugin.$(PLUGIN_EXT) $(PLUGIN_DIR)/pms5003_plugin.$(PLUGIN_EXT) $(PLUGIN_DIR)/mhz19_plugin.$(PLUGIN_EXT)
 
 $(TARGET): $(SRCS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-plugins/bme680_plugin.$(PLUGIN_EXT): plugins/bme680_plugin.c sensor.h globals.h
+$(PLUGIN_DIR)/dht22_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/dht22_plugin.c $(INC_DIR)/sensor.h $(INC_DIR)/globals.h
 	$(CC) $(SHARED_CFLAGS) $(SHARED_FLAGS) -o $@ $<
 
-plugins/pms5003_plugin.$(PLUGIN_EXT): plugins/pms5003_plugin.c sensor.h globals.h
+$(PLUGIN_DIR)/bme680_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/bme680_plugin.c $(INC_DIR)/sensor.h $(INC_DIR)/globals.h
 	$(CC) $(SHARED_CFLAGS) $(SHARED_FLAGS) -o $@ $<
 
-plugins/mhz19_plugin.$(PLUGIN_EXT): plugins/mhz19_plugin.c sensor.h globals.h
+$(PLUGIN_DIR)/pms5003_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/pms5003_plugin.c $(INC_DIR)/sensor.h $(INC_DIR)/globals.h
+	$(CC) $(SHARED_CFLAGS) $(SHARED_FLAGS) -o $@ $<
+
+$(PLUGIN_DIR)/mhz19_plugin.$(PLUGIN_EXT): $(PLUGIN_DIR)/mhz19_plugin.c $(INC_DIR)/sensor.h $(INC_DIR)/globals.h
 	$(CC) $(SHARED_CFLAGS) $(SHARED_FLAGS) -o $@ $<
 
 clean:

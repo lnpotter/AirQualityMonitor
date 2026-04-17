@@ -1,4 +1,4 @@
-#include "../sensor.h"
+#include "../include/sensor.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +50,10 @@ static int bme680_shutdown(void) {
 }
 
 SENSOR_PLUGIN_EXPORT SensorPlugin sensor_plugin = {
+    .api_version = SENSOR_PLUGIN_API_VERSION,
     .name = "BME680",
+    .plugin_version = "1.0.0",
+    .description = "Simulated BME680 readings (temperature/humidity/VOC proxy).",
     .sensor_id = 680,
     .init = bme680_init,
     .read_sample = bme680_read_sample,

@@ -1,4 +1,4 @@
-#include "../sensor.h"
+#include "../include/sensor.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +50,10 @@ static int mhz19_shutdown(void) {
 }
 
 SENSOR_PLUGIN_EXPORT SensorPlugin sensor_plugin = {
+    .api_version = SENSOR_PLUGIN_API_VERSION,
     .name = "MH-Z19",
+    .plugin_version = "1.0.0",
+    .description = "Simulated MH-Z19 CO2 ppm readings mapped to co field.",
     .sensor_id = 1900,
     .init = mhz19_init,
     .read_sample = mhz19_read_sample,

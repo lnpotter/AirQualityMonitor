@@ -1,4 +1,4 @@
-#include "../sensor.h"
+#include "../include/sensor.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,7 +49,10 @@ static int pms5003_shutdown(void) {
 }
 
 SENSOR_PLUGIN_EXPORT SensorPlugin sensor_plugin = {
+    .api_version = SENSOR_PLUGIN_API_VERSION,
     .name = "PMS5003",
+    .plugin_version = "1.0.0",
+    .description = "Simulated PMS5003 particulate readings.",
     .sensor_id = 5003,
     .init = pms5003_init,
     .read_sample = pms5003_read_sample,

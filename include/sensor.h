@@ -10,8 +10,13 @@ typedef struct {
     int (*shutdown)();
 } Sensor;
 
+#define SENSOR_PLUGIN_API_VERSION 1
+
 typedef struct {
+    int api_version;
     const char *name;
+    const char *plugin_version;
+    const char *description;
     int sensor_id;
     int (*init)(void);
     int (*read_sample)(AirQualityData *out);

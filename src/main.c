@@ -2,6 +2,7 @@
 #include "aqm_paths.h"
 #include "aqm_platform.h"
 #include "globals.h"
+#include "sensor_info.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -55,6 +56,7 @@ void show_menu(void) {
         printf("7. Cleanup old data\n");
         printf("8. Generate PDF report\n");
         printf("9. Configure limits and settings\n");
+        printf("10. Show sensor runtime info\n");
         printf("0. Exit\n");
         printf("Select an option: ");
 
@@ -93,6 +95,9 @@ void show_menu(void) {
             case 9:
                 configure_limits();
                 save_config();
+                break;
+            case 10:
+                show_sensor_runtime_info();
                 break;
             case 0:
                 printf("Exiting program...\n");

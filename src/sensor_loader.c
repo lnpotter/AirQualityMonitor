@@ -44,7 +44,15 @@ int sensor_module_load(const char *path, SensorModule *out) {
     out->plugin = plugin;
 #endif
 
-    if (!out->plugin->name || !out->plugin->read_sample || !out->plugin->init || !out->plugin->shutdown) {
+    if (out->plugin->api_version != SENSOR_PLUGIN_API_VERSION) {
+        fprintf(stderr, "Plugin ABI mismatch in %s (got %d, expected %d)\n", path, out->plugin->api_version,
+                SENSOR_PLUGIN_API_VERSION);
+        sensor_module_unload(out);
+        return -1;
+    }
+
+    if (!out->plugin->name || !out->plugin->plugin_version || !out->plugin->description || !out->plugin->read_sample ||
+        !out->plugin->init || !out->plugin->shutdown) {
         fprintf(stderr, "Invalid plugin ABI in %s\n", path);
         sensor_module_unload(out);
         return -1;

@@ -1,12 +1,15 @@
-#include "dht22.h"
-#include "aqm_platform.h"
+#include "../include/sensor.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-// If wiringPi is available (typically Linux/Raspberry Pi), compile hardware mode.
-// Otherwise compile a portable simulated implementation.
+#ifdef _WIN32
+#define SENSOR_PLUGIN_EXPORT __declspec(dllexport)
+#else
+#define SENSOR_PLUGIN_EXPORT
+#endif
+
 #if defined(HAVE_WIRINGPI) && !defined(_WIN32)
 #include <wiringPi.h>
 
@@ -24,7 +27,7 @@ static int dht_pin(void) {
 
 static int dht22_data[5] = {0, 0, 0, 0, 0};
 
-int dht22_read(float *out_temp_c, float *out_humidity_pct) {
+static int dht22_read(float *out_temp_c, float *out_humidity_pct) {
     if (!out_temp_c || !out_humidity_pct)
         return -1;
 
@@ -80,7 +83,7 @@ int dht22_read(float *out_temp_c, float *out_humidity_pct) {
     return -1;
 }
 
-int dht22_init(void) {
+static int dht22_init(void) {
     if (wiringPiSetup() == -1) {
         fprintf(stderr, "DHT22: wiringPi setup failed\n");
         return -1;
@@ -89,7 +92,7 @@ int dht22_init(void) {
     return 0;
 }
 
-int dht22_shutdown(void) {
+static int dht22_shutdown(void) {
     printf("DHT22 shutdown.\n");
     return 0;
 }
@@ -97,7 +100,7 @@ int dht22_shutdown(void) {
 #else
 
 // Portable simulated DHT22. Works on Windows/macOS/Linux without extra deps.
-int dht22_read(float *out_temp_c, float *out_humidity_pct) {
+static int dht22_read(float *out_temp_c, float *out_humidity_pct) {
     if (!out_temp_c || !out_humidity_pct)
         return -1;
 
@@ -112,19 +115,19 @@ int dht22_read(float *out_temp_c, float *out_humidity_pct) {
     return 0;
 }
 
-int dht22_init(void) {
+static int dht22_init(void) {
     printf("DHT22 initialized (simulated mode). Set HAVE_WIRINGPI=1 on Linux to use hardware.\n");
     return 0;
 }
 
-int dht22_shutdown(void) {
+static int dht22_shutdown(void) {
     printf("DHT22 shutdown.\n");
     return 0;
 }
 
 #endif
 
-int dht22_read_sample(AirQualityData *out) {
+static int dht22_read_sample(AirQualityData *out) {
     if (!out)
         return -1;
 
@@ -153,4 +156,15 @@ int dht22_read_sample(AirQualityData *out) {
     printf("DHT22: Humidity = %.1f %%  Temperature = %.1f C\n", h, t);
     return 0;
 }
+
+SENSOR_PLUGIN_EXPORT SensorPlugin sensor_plugin = {
+    .api_version = SENSOR_PLUGIN_API_VERSION,
+    .name = "DHT22",
+    .plugin_version = "1.0.0",
+    .description = "DHT22 plugin (hardware with wiringPi or simulated fallback).",
+    .sensor_id = 22,
+    .init = dht22_init,
+    .read_sample = dht22_read_sample,
+    .shutdown = dht22_shutdown,
+};
 

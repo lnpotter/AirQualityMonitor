@@ -58,24 +58,22 @@ make HAVE_HPDF=0
 AirQualityMonitor/
 ├── Makefile
 ├── README.md
-├── main.c
-├── globals.h / globals.c
-├── aqm_paths.c / aqm_paths.h      # data directory and path helpers
-├── aqm_platform.c / aqm_platform.h # sleep, mkdir, stdin flush, trims
-├── aqm_db.c / aqm_db.h            # schema, migration, sqlite helpers
-├── insert_data.c
-├── fetch_data.c
-├── alert_system.c
-├── export_to_csv.c
-├── configure_limits.c
-├── generate_statistics.c
-├── backup_database.c
-├── data_cleanup.c
-├── interval_collection.c
-├── generate_pdf_report.c
-├── config_persistence.c
-├── dht22.c
-└── sensor.h
+├── include/
+│   ├── globals.h
+│   ├── sensor.h
+│   ├── sensor_loader.h
+│   └── ...other headers
+├── src/
+│   ├── main.c
+│   ├── aqm_db.c
+│   ├── interval_collection.c
+│   ├── sensor_loader.c
+│   └── ...other modules
+└── plugins/
+    ├── dht22_plugin.c
+    ├── bme680_plugin.c
+    ├── pms5003_plugin.c
+    └── mhz19_plugin.c
 ```
 
 ## Build
@@ -106,8 +104,8 @@ CSV export writes `sensor_data.csv` in the **current working directory**. PDF ou
 The collector supports a portable **mock** mode and an optional **DHT22** mode selected by an environment variable:
 
 - `AQM_SENSOR=mock` (default): generates realistic-ish pollutant values without requiring hardware.
-- `AQM_SENSOR=dht22`: reads a DHT22 if the build enables wiringPi, otherwise uses a simulated DHT22 so the program still runs on Windows/macOS/Linux.
-- `AQM_SENSOR_PLUGIN=<path>`: loads a sensor module dynamically at runtime. When provided, plugin mode has priority over `AQM_SENSOR`.
+- `AQM_SENSOR=dht22|bme680|pms5003|mh-z19`: auto-resolves plugin path by OS extension (`.so`, `.dylib`, `.dll`) and loads it.
+- `AQM_SENSOR_PLUGIN=<path>`: loads a specific sensor module dynamically at runtime. When provided, this has priority over `AQM_SENSOR`.
 
 **Current schema mapping for DHT22** (until we add dedicated columns): temperature (°C) is stored in `pm25`, and humidity (%) is stored in `pm10`.
 
@@ -128,6 +126,11 @@ ABI contract is defined in `sensor.h` (`SensorPlugin`). A plugin must export:
 SensorPlugin sensor_plugin;
 ```
 
+ABI safety:
+
+- `api_version` is required and validated by the loader (`SENSOR_PLUGIN_API_VERSION`).
+- mandatory metadata fields: `name`, `plugin_version`, `description`.
+
 ### Example plugins included
 
 - `plugins/bme680_plugin.c`
@@ -135,6 +138,7 @@ SensorPlugin sensor_plugin;
 - `plugins/mhz19_plugin.c`
 
 These examples run in simulated mode (no hardware required), useful for CI/testing/portfolio demos.
+`dht22_plugin` supports hardware mode on Linux/Raspberry Pi when compiled with `HAVE_WIRINGPI=1`; otherwise it falls back to simulated mode.
 
 Build plugin shared libraries:
 
@@ -181,6 +185,7 @@ On first run, if no config exists, the program prompts for limits and interval s
 7. Cleanup old data (retention in days)  
 8. Generate PDF report (if built with libharu)  
 9. Configure limits and settings  
+10. Show sensor runtime info (active mode/env/plugin metadata)  
 0. Exit  
 
 ## Branches
