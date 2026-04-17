@@ -1,19 +1,36 @@
 #include "aqm_platform.h"
+#include "dht22.h"
 #include "globals.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
-void generate_random_data(AirQualityData *data);
+static void mock_generate_air_quality(AirQualityData *data);
 void insert_data(AirQualityData data);
 
 void interval_collection(void) {
+    const char *mode = getenv("AQM_SENSOR");
+    if (!mode || !mode[0])
+        mode = "mock";
+
+    int use_dht22 = strcmp(mode, "dht22") == 0;
+    if (use_dht22) {
+        if (dht22_init() != 0) {
+            fprintf(stderr, "DHT22 init failed; falling back to mock.\n");
+            use_dht22 = 0;
+        }
+    }
+
     printf("Samples to collect (>=1). Interval between samples: %d s.\n", collection_interval);
+    printf("Sensor mode: %s\n", use_dht22 ? "dht22" : "mock");
     printf("How many samples? ");
     int count = 0;
     if (scanf("%d", &count) != 1 || count < 1) {
         aqm_flush_stdin();
         printf("Invalid count; aborting.\n");
+        if (use_dht22)
+            dht22_shutdown();
         return;
     }
     aqm_flush_stdin();
@@ -25,16 +42,25 @@ void interval_collection(void) {
 
     for (int i = 0; i < count; i++) {
         AirQualityData data;
-        generate_random_data(&data);
+        if (use_dht22) {
+            if (dht22_read_sample(&data) != 0) {
+                fprintf(stderr, "DHT22 read failed; using mock sample.\n");
+                mock_generate_air_quality(&data);
+            }
+        } else {
+            mock_generate_air_quality(&data);
+        }
         insert_data(data);
         if (i + 1 < count)
             aqm_sleep_seconds((unsigned)collection_interval);
     }
 
     printf("Data collection finished (%d sample(s)).\n", count);
+    if (use_dht22)
+        dht22_shutdown();
 }
 
-void generate_random_data(AirQualityData *data) {
+static void mock_generate_air_quality(AirQualityData *data) {
     data->sensor_id = (rand() % 10) + 1;
     time_t t = time(NULL);
     struct tm *ptm = localtime(&t);

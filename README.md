@@ -100,6 +100,15 @@ make clean
 
 CSV export writes `sensor_data.csv` in the **current working directory**. PDF output is `sensor_data_report.pdf` in the CWD when PDF support is enabled.
 
+### Sensor selection (portable mocks)
+
+The collector supports a portable **mock** mode and an optional **DHT22** mode selected by an environment variable:
+
+- `AQM_SENSOR=mock` (default): generates realistic-ish pollutant values without requiring hardware.
+- `AQM_SENSOR=dht22`: reads a DHT22 if the build enables wiringPi, otherwise uses a simulated DHT22 so the program still runs on Windows/macOS/Linux.
+
+**Current schema mapping for DHT22** (until we add dedicated columns): temperature (°C) is stored in `pm25`, and humidity (%) is stored in `pm10`.
+
 ## Usage
 
 ```sh

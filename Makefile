@@ -23,6 +23,8 @@ SRCS = main.c \
 CC ?= gcc
 CFLAGS = -Wall -Wextra -std=c99
 
+LIBS = -lsqlite3
+
 # PDF via libharu: HAVE_HPDF=0 if libhpdf is not installed (typical on Windows unless you use vcpkg/MSYS).
 ifeq ($(OS),Windows_NT)
   HAVE_HPDF ?= 0
@@ -32,9 +34,14 @@ endif
 
 ifeq ($(HAVE_HPDF),1)
   CFLAGS += -DHAVE_HPDF
-  LIBS = -lsqlite3 -lhpdf
-else
-  LIBS = -lsqlite3
+  LIBS += -lhpdf
+endif
+
+# Optional: wiringPi (Linux/Raspberry Pi). Keeps Windows/macOS builds working by default.
+HAVE_WIRINGPI ?= 0
+ifeq ($(HAVE_WIRINGPI),1)
+  CFLAGS += -DHAVE_WIRINGPI
+  LIBS += -lwiringPi
 endif
 
 .PHONY: all clean

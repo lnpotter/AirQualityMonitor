@@ -11,7 +11,12 @@ static int ensure_sensor(sqlite3 *db, int sensor_id) {
         return -1;
     }
     char name[64];
-    int n = snprintf(name, sizeof(name), "Sensor %d", sensor_id);
+    const char *forced_name = NULL;
+    if (sensor_id == 22)
+        forced_name = "DHT22";
+
+    int n = forced_name ? snprintf(name, sizeof(name), "%s", forced_name)
+                        : snprintf(name, sizeof(name), "Sensor %d", sensor_id);
     if (n < 0 || (size_t)n >= sizeof(name)) {
         sqlite3_finalize(st);
         return -1;
