@@ -22,5 +22,9 @@ void aqm_flush_stdin(void);
 
 /** Trim trailing \\r \\n and spaces in place. */
 void aqm_trim_crlf(char *s);
+/** Parse an integer from user input. Returns 1 if valid. */
+int aqm_parse_int(const char *input, int *out);
 
+/** Parse a float from user input. Returns 1 if valid. */
+int aqm_parse_float(const char *input, float *out);
 #endif

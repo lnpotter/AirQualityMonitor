@@ -1,6 +1,8 @@
 #include "core/aqm_platform.h"
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -41,6 +43,42 @@ void aqm_flush_stdin(void) {
     int c;
     while ((c = getchar()) != '\n' && c != EOF)
         ;
+}
+
+int aqm_parse_int(const char *input, int *out) {
+    if (!input || !out)
+        return 0;
+
+    char *endptr = NULL;
+    errno = 0;
+    long value = strtol(input, &endptr, 10);
+    if (endptr == input || errno != 0)
+        return 0;
+    while (*endptr != '\0' && isspace((unsigned char)*endptr))
+        endptr++;
+    if (*endptr != '\0')
+        return 0;
+    if (value < INT_MIN || value > INT_MAX)
+        return 0;
+    *out = (int)value;
+    return 1;
+}
+
+int aqm_parse_float(const char *input, float *out) {
+    if (!input || !out)
+        return 0;
+
+    char *endptr = NULL;
+    errno = 0;
+    float value = strtof(input, &endptr);
+    if (endptr == input || errno != 0)
+        return 0;
+    while (*endptr != '\0' && isspace((unsigned char)*endptr))
+        endptr++;
+    if (*endptr != '\0')
+        return 0;
+    *out = value;
+    return 1;
 }
 
 void aqm_trim_crlf(char *s) {
