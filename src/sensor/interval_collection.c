@@ -1,15 +1,17 @@
+#include "core/aqm_db.h"
 #include "core/aqm_platform.h"
 #include "core/globals.h"
+#include "data/insert_data.h"
 #include "sensor/sensor_loader.h"
+#include "sensor/sensor_utils.h"
+#include <sqlite3.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 static void mock_generate_air_quality(AirQualityData *data);
-static const char *resolve_default_plugin_path(const char *mode);
 static void fill_timestamp(char *buf, size_t len);
-void insert_data(AirQualityData data);
 
 void interval_collection(void) {
     // Check if multi-sensor mode is enabled
@@ -91,9 +93,9 @@ void interval_collection(void) {
     }
 
     printf("How many samples? ");
+    char input[64];
     int count = 0;
-    if (scanf("%d", &count) != 1 || count < 1) {
-        aqm_flush_stdin();
+    if (!fgets(input, sizeof(input), stdin) || !aqm_parse_int(input, &count) || count < 1) {
         printf("Invalid count; aborting.\n");
         if (use_multi_sensor) {
             for (int i = 0; i < enabled_module_count; i++) {
@@ -106,7 +108,6 @@ void interval_collection(void) {
         }
         return;
     }
-    aqm_flush_stdin();
 
     if (collection_interval < 1) {
         printf("collection_interval must be >= 1 (check configuration).\n");
@@ -122,6 +123,25 @@ void interval_collection(void) {
         return;
     }
 
+    sqlite3 *db = NULL;
+    if (aqm_db_open(&db) != 0) {
+        fprintf(stderr, "Unable to open database for data collection.\n");
+        if (use_multi_sensor) {
+            for (int i = 0; i < enabled_module_count; i++) {
+                modules[i].plugin->shutdown();
+                sensor_module_unload(&modules[i]);
+            }
+        } else if (use_plugin) {
+            single_module.plugin->shutdown();
+            sensor_module_unload(&single_module);
+        }
+        return;
+    }
+
+    if (sqlite3_exec(db, "BEGIN TRANSACTION;", NULL, NULL, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Failed to start database transaction: %s\n", sqlite3_errmsg(db));
+    }
+
     for (int i = 0; i < count; i++) {
         if (use_multi_sensor) {
             // Collect from all enabled sensors
@@ -133,7 +153,7 @@ void interval_collection(void) {
                 } else if (!data.model[0]) {
                     snprintf(data.model, sizeof(data.model), "%s", modules[j].plugin->name);
                 }
-                insert_data(data);
+                insert_data_sqlite(db, &data);
             }
         } else {
             // Single sensor mode
@@ -148,12 +168,19 @@ void interval_collection(void) {
             } else {
                 mock_generate_air_quality(&data);
             }
-            insert_data(data);
+            insert_data_sqlite(db, &data);
         }
         
         if (i + 1 < count)
             aqm_sleep_seconds((unsigned)collection_interval);
     }
+
+    if (sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Failed to commit database transaction: %s\n", sqlite3_errmsg(db));
+        sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
+    }
+
+    aqm_db_close(db);
 
     if (use_multi_sensor) {
         printf("Data collection finished (%d sample(s) from %d sensor(s)).\n", count, enabled_module_count);
@@ -195,36 +222,3 @@ static void fill_timestamp(char *buf, size_t len) {
     }
 }
 
-static const char *resolve_default_plugin_path(const char *mode) {
-    if (!mode)
-        return NULL;
-#ifdef _WIN32
-    if (strcmp(mode, "dht22") == 0)
-        return ".\\plugins\\dht22_plugin.dll";
-    if (strcmp(mode, "bme680") == 0)
-        return ".\\plugins\\bme680_plugin.dll";
-    if (strcmp(mode, "pms5003") == 0)
-        return ".\\plugins\\pms5003_plugin.dll";
-    if (strcmp(mode, "mh-z19") == 0 || strcmp(mode, "mhz19") == 0)
-        return ".\\plugins\\mhz19_plugin.dll";
-#elif __APPLE__
-    if (strcmp(mode, "dht22") == 0)
-        return "./plugins/dht22_plugin.dylib";
-    if (strcmp(mode, "bme680") == 0)
-        return "./plugins/bme680_plugin.dylib";
-    if (strcmp(mode, "pms5003") == 0)
-        return "./plugins/pms5003_plugin.dylib";
-    if (strcmp(mode, "mh-z19") == 0 || strcmp(mode, "mhz19") == 0)
-        return "./plugins/mhz19_plugin.dylib";
-#else
-    if (strcmp(mode, "dht22") == 0)
-        return "./plugins/dht22_plugin.so";
-    if (strcmp(mode, "bme680") == 0)
-        return "./plugins/bme680_plugin.so";
-    if (strcmp(mode, "pms5003") == 0)
-        return "./plugins/pms5003_plugin.so";
-    if (strcmp(mode, "mh-z19") == 0 || strcmp(mode, "mhz19") == 0)
-        return "./plugins/mhz19_plugin.so";
-#endif
-    return NULL;
-}
