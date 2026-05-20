@@ -91,8 +91,10 @@ int aqm_db_open(sqlite3 **out_db) {
     }
     sqlite3 *db = NULL;
     if (sqlite3_open(path, &db) != SQLITE_OK || !db) {
-        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
+        const char *errmsg = db ? sqlite3_errmsg(db) : "Failed to allocate database handle";
+        fprintf(stderr, "Cannot open database: %s\n", errmsg);
+        if (db)
+            sqlite3_close(db);
         return -1;
     }
     sqlite3_busy_timeout(db, 5000);
