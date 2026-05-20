@@ -50,6 +50,7 @@ int main(void) {
 
 void show_menu(void) {
     int option;
+    char input[64];
 
     do {
         printf("\n=== Air Quality Monitor ===\n");
@@ -69,12 +70,10 @@ void show_menu(void) {
         printf("0. Exit\n");
         printf("Select an option: ");
 
-        if (scanf("%d", &option) != 1) {
-            aqm_flush_stdin();
+        if (!fgets(input, sizeof(input), stdin) || !aqm_parse_int(input, &option)) {
             printf("Invalid input.\n");
             continue;
         }
-        aqm_flush_stdin();
 
         switch (option) {
             case 1:
@@ -149,8 +148,11 @@ void configure_sensor_runtime(void) {
     printf("Custom plugin path: %s\n", sensor_plugin_path[0] ? sensor_plugin_path : "(none)");
 
     printf("Enable plugins? (1=yes, 0=no, Enter=keep): ");
-    if (fgets(input, sizeof(input), stdin) && input[0] != '\n')
-        sensor_plugins_enabled = atoi(input) ? 1 : 0;
+    if (fgets(input, sizeof(input), stdin) && input[0] != '\n') {
+        int enabled;
+        if (aqm_parse_int(input, &enabled))
+            sensor_plugins_enabled = enabled ? 1 : 0;
+    }
 
     printf("Sensor mode [mock|dht22|bme680|pms5003|mh-z19] (Enter=keep): ");
     if (fgets(input, sizeof(input), stdin) && input[0] != '\n') {
@@ -213,12 +215,10 @@ void configure_multi_sensor(void) {
     printf("Select an option: ");
     
     int option;
-    if (scanf("%d", &option) != 1) {
-        aqm_flush_stdin();
+    if (!fgets(input, sizeof(input), stdin) || !aqm_parse_int(input, &option)) {
         printf("Invalid input.\n");
         return;
     }
-    aqm_flush_stdin();
     
     switch (option) {
         case 1:
@@ -266,20 +266,16 @@ void configure_multi_sensor(void) {
             
             printf("\nEnter sensor number to remove (1-%d): ", active_sensor_count);
             int idx;
-            if (scanf("%d", &idx) == 1 && idx >= 1 && idx <= active_sensor_count) {
-                aqm_flush_stdin();
-                // Shift remaining sensors
+            if (fgets(input, sizeof(input), stdin) && aqm_parse_int(input, &idx) && idx >= 1 && idx <= active_sensor_count) {
                 for (int i = idx - 1; i < active_sensor_count - 1; i++) {
                     sensor_configs[i] = sensor_configs[i + 1];
                 }
-                // Clear the last slot
                 sensor_configs[active_sensor_count - 1].mode[0] = '\0';
                 sensor_configs[active_sensor_count - 1].plugin_path[0] = '\0';
                 sensor_configs[active_sensor_count - 1].enabled = 0;
                 active_sensor_count--;
                 printf("Sensor removed successfully.\n");
             } else {
-                aqm_flush_stdin();
                 printf("Invalid sensor number.\n");
             }
             break;
@@ -292,14 +288,12 @@ void configure_multi_sensor(void) {
             
             printf("\nEnter sensor number to toggle (1-%d): ", active_sensor_count);
             int toggle_idx;
-            if (scanf("%d", &toggle_idx) == 1 && toggle_idx >= 1 && toggle_idx <= active_sensor_count) {
-                aqm_flush_stdin();
+            if (fgets(input, sizeof(input), stdin) && aqm_parse_int(input, &toggle_idx) && toggle_idx >= 1 && toggle_idx <= active_sensor_count) {
                 sensor_configs[toggle_idx - 1].enabled = !sensor_configs[toggle_idx - 1].enabled;
                 printf("Sensor %s is now %s.\n", 
                        sensor_configs[toggle_idx - 1].mode,
                        sensor_configs[toggle_idx - 1].enabled ? "enabled" : "disabled");
             } else {
-                aqm_flush_stdin();
                 printf("Invalid sensor number.\n");
             }
             break;
