@@ -10,6 +10,7 @@ static int ensure_sensor(sqlite3 *db, int sensor_id) {
         fprintf(stderr, "SQLite prepare error: %s\n", sqlite3_errmsg(db));
         return -1;
     }
+
     char name[64];
     const char *forced_name = NULL;
     switch (sensor_id) {
@@ -36,6 +37,7 @@ static int ensure_sensor(sqlite3 *db, int sensor_id) {
         sqlite3_finalize(st);
         return -1;
     }
+
     sqlite3_bind_int(st, 1, sensor_id);
     sqlite3_bind_text(st, 2, name, -1, SQLITE_TRANSIENT);
     sqlite3_step(st);
@@ -58,46 +60,54 @@ static const char *default_model_name(int sensor_id) {
     }
 }
 
-void insert_data(AirQualityData data) {
-    sqlite3 *db = NULL;
-    if (aqm_db_open(&db) != 0)
-        return;
+static int insert_data_db(sqlite3 *db, const AirQualityData *data) {
+    if (!db || !data)
+        return -1;
 
-    if (ensure_sensor(db, data.sensor_id) != 0) {
-        aqm_db_close(db);
-        return;
-    }
+    if (ensure_sensor(db, data->sensor_id) != 0)
+        return -1;
 
     sqlite3_stmt *st = NULL;
     const char *sql = "INSERT INTO readings (sensor_id, measured_at, model, pm25, pm10, co, no2, o3, so2) "
                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);";
-
     if (sqlite3_prepare_v2(db, sql, -1, &st, NULL) != SQLITE_OK) {
         fprintf(stderr, "SQLite prepare error: %s\n", sqlite3_errmsg(db));
-        aqm_db_close(db);
-        return;
+        return -1;
     }
 
-    sqlite3_bind_int(st, 1, data.sensor_id);
-    sqlite3_bind_text(st, 2, data.timestamp, -1, SQLITE_STATIC);
-    const char *model = data.model[0] ? data.model : default_model_name(data.sensor_id);
+    sqlite3_bind_int(st, 1, data->sensor_id);
+    sqlite3_bind_text(st, 2, data->timestamp, -1, SQLITE_STATIC);
+    const char *model = data->model[0] ? data->model : default_model_name(data->sensor_id);
     sqlite3_bind_text(st, 3, model, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_double(st, 4, (double)data.pm25);
-    sqlite3_bind_double(st, 5, (double)data.pm10);
-    sqlite3_bind_double(st, 6, (double)data.co);
-    sqlite3_bind_double(st, 7, (double)data.no2);
-    sqlite3_bind_double(st, 8, (double)data.o3);
-    sqlite3_bind_double(st, 9, (double)data.so2);
+    sqlite3_bind_double(st, 4, (double)data->pm25);
+    sqlite3_bind_double(st, 5, (double)data->pm10);
+    sqlite3_bind_double(st, 6, (double)data->co);
+    sqlite3_bind_double(st, 7, (double)data->no2);
+    sqlite3_bind_double(st, 8, (double)data->o3);
+    sqlite3_bind_double(st, 9, (double)data->so2);
 
     int rc = sqlite3_step(st);
     sqlite3_finalize(st);
 
     if (rc != SQLITE_DONE) {
         fprintf(stderr, "Insert failed: %s\n", sqlite3_errmsg(db));
-    } else {
-        const char *model_name = data.model[0] ? data.model : default_model_name(data.sensor_id);
-        printf("Data from %s (ID: %d) inserted successfully.\n", model_name, data.sensor_id);
+        return -1;
     }
 
+    const char *model_name = data->model[0] ? data->model : default_model_name(data->sensor_id);
+    printf("Data from %s (ID: %d) inserted successfully.\n", model_name, data->sensor_id);
+    return 0;
+}
+
+int insert_data_sqlite(sqlite3 *db, const AirQualityData *data) {
+    return insert_data_db(db, data);
+}
+
+void insert_data(AirQualityData data) {
+    sqlite3 *db = NULL;
+    if (aqm_db_open(&db) != 0)
+        return;
+
+    insert_data_db(db, &data);
     aqm_db_close(db);
 }
