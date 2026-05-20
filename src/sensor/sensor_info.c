@@ -1,42 +1,9 @@
 #include "core/globals.h"
 #include "sensor/sensor_loader.h"
+#include "sensor/sensor_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-static const char *resolve_default_plugin_path(const char *mode) {
-    if (!mode)
-        return NULL;
-#ifdef _WIN32
-    if (strcmp(mode, "dht22") == 0)
-        return ".\\plugins\\dht22_plugin.dll";
-    if (strcmp(mode, "bme680") == 0)
-        return ".\\plugins\\bme680_plugin.dll";
-    if (strcmp(mode, "pms5003") == 0)
-        return ".\\plugins\\pms5003_plugin.dll";
-    if (strcmp(mode, "mh-z19") == 0 || strcmp(mode, "mhz19") == 0)
-        return ".\\plugins\\mhz19_plugin.dll";
-#elif __APPLE__
-    if (strcmp(mode, "dht22") == 0)
-        return "./plugins/dht22_plugin.dylib";
-    if (strcmp(mode, "bme680") == 0)
-        return "./plugins/bme680_plugin.dylib";
-    if (strcmp(mode, "pms5003") == 0)
-        return "./plugins/pms5003_plugin.dylib";
-    if (strcmp(mode, "mh-z19") == 0 || strcmp(mode, "mhz19") == 0)
-        return "./plugins/mhz19_plugin.dylib";
-#else
-    if (strcmp(mode, "dht22") == 0)
-        return "./plugins/dht22_plugin.so";
-    if (strcmp(mode, "bme680") == 0)
-        return "./plugins/bme680_plugin.so";
-    if (strcmp(mode, "pms5003") == 0)
-        return "./plugins/pms5003_plugin.so";
-    if (strcmp(mode, "mh-z19") == 0 || strcmp(mode, "mhz19") == 0)
-        return "./plugins/mhz19_plugin.so";
-#endif
-    return NULL;
-}
 
 static void show_single_sensor_info(const char *mode, const char *plugin_path) {
     printf("\n========================================\n");
