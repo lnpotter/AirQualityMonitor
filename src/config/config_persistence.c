@@ -66,31 +66,51 @@ int load_config(void) {
         const char *key = line;
         const char *value = eq + 1;
 
-        if (strcmp(key, "limit_pm25") == 0)
-            limit_pm25 = (float)atof(value);
-        else if (strcmp(key, "limit_pm10") == 0)
-            limit_pm10 = (float)atof(value);
-        else if (strcmp(key, "limit_co") == 0)
-            limit_co = (float)atof(value);
-        else if (strcmp(key, "limit_no2") == 0)
-            limit_no2 = (float)atof(value);
-        else if (strcmp(key, "limit_o3") == 0)
-            limit_o3 = (float)atof(value);
-        else if (strcmp(key, "limit_so2") == 0)
-            limit_so2 = (float)atof(value);
-        else if (strcmp(key, "collection_interval") == 0)
-            collection_interval = atoi(value);
-        else if (strcmp(key, "retention_period") == 0)
-            retention_period = atoi(value);
-        else if (strcmp(key, "sensor_plugins_enabled") == 0)
-            sensor_plugins_enabled = atoi(value) ? 1 : 0;
-        else if (strcmp(key, "sensor_mode") == 0)
+        if (strcmp(key, "limit_pm25") == 0) {
+            float temp;
+            if (aqm_parse_float(value, &temp))
+                limit_pm25 = temp;
+        } else if (strcmp(key, "limit_pm10") == 0) {
+            float temp;
+            if (aqm_parse_float(value, &temp))
+                limit_pm10 = temp;
+        } else if (strcmp(key, "limit_co") == 0) {
+            float temp;
+            if (aqm_parse_float(value, &temp))
+                limit_co = temp;
+        } else if (strcmp(key, "limit_no2") == 0) {
+            float temp;
+            if (aqm_parse_float(value, &temp))
+                limit_no2 = temp;
+        } else if (strcmp(key, "limit_o3") == 0) {
+            float temp;
+            if (aqm_parse_float(value, &temp))
+                limit_o3 = temp;
+        } else if (strcmp(key, "limit_so2") == 0) {
+            float temp;
+            if (aqm_parse_float(value, &temp))
+                limit_so2 = temp;
+        } else if (strcmp(key, "collection_interval") == 0) {
+            int temp;
+            if (aqm_parse_int(value, &temp) && temp >= 1)
+                collection_interval = temp;
+        } else if (strcmp(key, "retention_period") == 0) {
+            int temp;
+            if (aqm_parse_int(value, &temp) && temp >= 1)
+                retention_period = temp;
+        } else if (strcmp(key, "sensor_plugins_enabled") == 0) {
+            int temp;
+            if (aqm_parse_int(value, &temp))
+                sensor_plugins_enabled = temp ? 1 : 0;
+        } else if (strcmp(key, "sensor_mode") == 0)
             snprintf(sensor_mode, sizeof(sensor_mode), "%s", value);
         else if (strcmp(key, "sensor_plugin_path") == 0)
             snprintf(sensor_plugin_path, sizeof(sensor_plugin_path), "%s", value);
-        else if (strcmp(key, "active_sensor_count") == 0)
-            active_sensor_count = atoi(value);
-        else if (strncmp(key, "sensor_", 7) == 0) {
+        else if (strcmp(key, "active_sensor_count") == 0) {
+            int temp;
+            if (aqm_parse_int(value, &temp) && temp >= 0 && temp <= MAX_SENSORS)
+                active_sensor_count = temp;
+        } else if (strncmp(key, "sensor_", 7) == 0) {
             // Parse sensor_N_mode, sensor_N_path, sensor_N_enabled
             int idx = -1;
             char suffix[32] = {0};
