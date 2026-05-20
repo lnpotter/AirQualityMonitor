@@ -107,11 +107,30 @@ CSV export writes `sensor_data.csv` in the **current working directory**. PDF ou
 The collector supports portable **mock** mode and plugin-backed sensors.
 
 - Sensor runtime is configured in menu option **11. Configure sensor/plugin runtime** and persisted in `config.cfg`.
-- `sensor_mode`: `mock|dht22|bme680|pms5003|mh-z19`
+- `sensor_mode`: `mock|dht22|bme680|pms5003|mh-z19|mhz19`
 - `sensor_plugins_enabled`: `1|0` (enable/disable plugins globally)
 - `sensor_plugin_path`: optional explicit module path override
 
 Each reading now stores `model` in the database (for example `DHT22`, `MH-Z19`, `mock`).
+
+### Multi-sensor setup
+
+The application supports simultaneous data collection from multiple sensors (up to 8 sensors).
+
+- Configure multi-sensor setup via menu option **13. Configure multi-sensor setup**
+- Each sensor can be independently enabled/disabled
+- Sensors are configured with mode (dht22, bme680, pms5003, mhz19) and optional custom plugin path
+- Configuration is persisted in `config.cfg` with `sensor_N_mode`, `sensor_N_path`, `sensor_N_enabled` entries
+- When multi-sensor mode is active, data collection reads from all enabled sensors for each sample
+
+### Auto-detection
+
+Menu option **12. Auto-detect sensors** automatically scans for available sensor plugins:
+
+- Attempts to load each plugin from the `plugins/` directory
+- Tests hardware initialization to determine if sensors are physically connected
+- Offers to automatically enable detected sensors for multi-sensor data collection
+- Useful for quick setup when hardware is available
 
 ### Dynamic plugin architecture
 
@@ -167,21 +186,7 @@ make plugins HAVE_WIRINGPI=1
 
 Run with a plugin:
 
-```sh
-# Linux example
-AQM_SENSOR_PLUGIN=./plugins/bme680_plugin.so ./air_quality_monitor
-```
-
-```sh
-# macOS example
-AQM_SENSOR_PLUGIN=./plugins/bme680_plugin.dylib ./air_quality_monitor
-```
-
-```powershell
-# Windows PowerShell example
-$env:AQM_SENSOR_PLUGIN=".\plugins\bme680_plugin.dll"
-.\air_quality_monitor.exe
-```
+Plugins are configured via the menu system (option 11) and persisted in `config.cfg`. The application will automatically load the appropriate plugin based on the configured sensor mode. No environment variables are required for plugin loading.
 
 ### Real hardware connection quick notes
 
@@ -213,6 +218,8 @@ On first run, if no config exists, the program prompts for limits and settings, 
 9. Configure limits and settings  
 10. Show sensor runtime info (active mode/env/plugin metadata)  
 11. Configure sensor/plugin runtime (enable/disable plugins, choose mode/path)  
+12. Auto-detect sensors (scan for available sensor plugins and hardware)  
+13. Configure multi-sensor setup (manage multiple sensors for simultaneous collection)  
 0. Exit  
 
 After each action, the program waits for Enter before returning to the menu.

@@ -89,24 +89,14 @@ Output extension depends on OS:
 
 ## Run with Plugins
 
-Use explicit path:
+Plugins are configured via the application's menu system (option 11: Configure sensor/plugin runtime) and persisted in `config.cfg`. The application will automatically load the appropriate plugin based on the configured sensor mode.
 
-```sh
-AQM_SENSOR_PLUGIN=./plugins/bme680_plugin.so ./air_quality_monitor
-```
+To use a plugin:
+1. Build the plugin: `make plugins`
+2. Run the application: `./air_quality_monitor`
+3. Select option 11 from the menu
+4. Enable plugins and select the desired sensor mode (dht22, bme680, pms5003, mhz19)
+5. Optionally specify a custom plugin path if needed
+6. Save the configuration
 
-Or auto-resolve by sensor name:
-
-```sh
-AQM_SENSOR=dht22 ./air_quality_monitor
-AQM_SENSOR=bme680 ./air_quality_monitor
-AQM_SENSOR=pms5003 ./air_quality_monitor
-AQM_SENSOR=mh-z19 ./air_quality_monitor
-```
-
-On Windows PowerShell:
-
-```powershell
-$env:AQM_SENSOR_PLUGIN=".\plugins\bme680_plugin.dll"
-.\air_quality_monitor.exe
-```
+The application will automatically load the correct plugin file (.so on Linux, .dylib on macOS, .dll on Windows) based on the sensor mode and platform.
