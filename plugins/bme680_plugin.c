@@ -15,7 +15,7 @@
 
 static void fill_timestamp(char *buf, size_t len) {
     time_t now = time(NULL);
-    struct tm *ptm = localtime(&now);
+    const struct tm *ptm = localtime(&now);
     if (!ptm) {
         snprintf(buf, len, "1970-01-01 00:00:00");
         return;
@@ -70,7 +70,7 @@ static int try_read_bme680_iio(float *temp_c, float *hum_pct, float *gas_kohm) {
     DIR *d = opendir("/sys/bus/iio/devices");
     if (!d)
         return -1;
-    struct dirent *ent;
+    const struct dirent *ent;
     while ((ent = readdir(d)) != NULL) {
         if (strncmp(ent->d_name, "iio:device", 10) != 0)
             continue;

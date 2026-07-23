@@ -14,7 +14,7 @@ void backup_database(void) {
         return;
 
     time_t t = time(NULL);
-    struct tm *ptm = localtime(&t);
+    const struct tm *ptm = localtime(&t);
     if (!ptm) {
         fprintf(stderr, "localtime failed.\n");
         aqm_db_close(src);

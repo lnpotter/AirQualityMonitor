@@ -21,7 +21,7 @@
 
 static void fill_timestamp(char *buf, size_t len) {
     time_t now = time(NULL);
-    struct tm *ptm = localtime(&now);
+    const struct tm *ptm = localtime(&now);
     if (!ptm) {
         snprintf(buf, len, "1970-01-01 00:00:00");
         return;

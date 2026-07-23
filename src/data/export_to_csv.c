@@ -55,7 +55,7 @@ static void update_sensor_stats(SensorStats *stats, double pm25, double pm10, do
 
 static void write_csv_header(FILE *csv_file, int total_records, const char *period_start, const char *period_end) {
     time_t now = time(NULL);
-    struct tm *tm_info = localtime(&now);
+    const struct tm *tm_info = localtime(&now);
     char export_time[32];
     strftime(export_time, sizeof(export_time), "%Y-%m-%d %H:%M:%S", tm_info);
     
@@ -68,7 +68,7 @@ static void write_csv_header(FILE *csv_file, int total_records, const char *peri
     fprintf(csv_file, "#\n");
 }
 
-static void write_sensor_section_header(FILE *csv_file, SensorStats *stats) {
+static void write_sensor_section_header(FILE *csv_file, const SensorStats *stats) {
     fprintf(csv_file, "#\n");
     fprintf(csv_file, "# ============================================\n");
     fprintf(csv_file, "# SENSOR: %s (ID: %d, Model: %s)\n", stats->name, stats->sensor_id, stats->model);
@@ -139,7 +139,7 @@ static void write_sensor_reading(FILE *csv_file, sqlite3_stmt *res, int *alert_c
             id, sensor_id, sname, model, mts, pm25, pm10, co, no2, o3, so2, status, alert_details);
 }
 
-static void write_sensor_statistics(FILE *csv_file, SensorStats *stats) {
+static void write_sensor_statistics(FILE *csv_file, const SensorStats *stats) {
     if (stats->count == 0) return;
     
     fprintf(csv_file, "#\n");

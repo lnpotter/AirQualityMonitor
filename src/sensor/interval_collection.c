@@ -212,7 +212,7 @@ static void mock_generate_air_quality(AirQualityData *data) {
 
 static void fill_timestamp(char *buf, size_t len) {
     time_t t = time(NULL);
-    struct tm *ptm = localtime(&t);
+    const struct tm *ptm = localtime(&t);
     if (!ptm) {
         snprintf(buf, len, "1970-01-01 00:00:00");
         return;
