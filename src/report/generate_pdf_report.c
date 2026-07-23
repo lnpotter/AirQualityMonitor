@@ -118,7 +118,7 @@ static void draw_cover_page(HPDF_Doc pdf, HPDF_Font font_bold, HPDF_Font font,
     
     // Date
     time_t now = time(NULL);
-    struct tm *tm_info = localtime(&now);
+    const struct tm *tm_info = localtime(&now);
     char date_str[64];
     strftime(date_str, sizeof(date_str), "Generated: %Y-%m-%d %H:%M", tm_info);
     HPDF_Page_SetFontAndSize(page, font, 12);

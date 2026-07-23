@@ -79,6 +79,11 @@ static int migrate_legacy_sensor_data(sqlite3 *db) {
     return 0;
 }
 
+// public accessor for the resolved database path, exposed for external
+// tools/plugins that need to locate the .db file without duplicating
+// aqm_get_db_path's platform-specific resolution logic. not currently
+// called internally
+
 int aqm_db_get_path(char *buf, size_t buflen) { return aqm_get_db_path(buf, buflen); }
 
 int aqm_db_open(sqlite3 **out_db) {

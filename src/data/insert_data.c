@@ -102,12 +102,3 @@ static int insert_data_db(sqlite3 *db, const AirQualityData *data) {
 int insert_data_sqlite(sqlite3 *db, const AirQualityData *data) {
     return insert_data_db(db, data);
 }
-
-void insert_data(AirQualityData data) {
-    sqlite3 *db = NULL;
-    if (aqm_db_open(&db) != 0)
-        return;
-
-    insert_data_db(db, &data);
-    aqm_db_close(db);
-}

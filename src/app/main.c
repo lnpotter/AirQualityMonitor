@@ -18,13 +18,12 @@ void backup_database(void);
 void cleanup_old_data(void);
 void interval_collection(void);
 void generate_pdf_report(void);
-void insert_data(AirQualityData data);
 int load_config(void);
 void save_config(void);
-void show_menu(void);
-void configure_sensor_runtime(void);
-void configure_multi_sensor(void);
-void wait_for_menu_return(void);
+static void show_menu(void);
+static void configure_sensor_runtime(void);
+static void configure_multi_sensor(void);
+static void wait_for_menu_return(void);
 
 int main(void) {
     aqm_paths_init();
@@ -48,7 +47,7 @@ int main(void) {
     return 0;
 }
 
-void show_menu(void) {
+static void show_menu(void) {
     int option;
     char input[64];
 
@@ -131,13 +130,13 @@ void show_menu(void) {
     } while (option != 0);
 }
 
-void wait_for_menu_return(void) {
+static void wait_for_menu_return(void) {
     char input[8];
     printf("\nPress Enter to return to the menu...");
     (void)fgets(input, sizeof(input), stdin);
 }
 
-void configure_sensor_runtime(void) {
+static void configure_sensor_runtime(void) {
     const char *allowed_modes[] = {"mock", "dht22", "bme680", "pms5003", "mh-z19", "mhz19"};
     const size_t allowed_count = sizeof(allowed_modes) / sizeof(allowed_modes[0]);
     char input[256];
@@ -190,7 +189,7 @@ void configure_sensor_runtime(void) {
     printf("Runtime sensor settings updated.\n");
 }
 
-void configure_multi_sensor(void) {
+static void configure_multi_sensor(void) {
     const char *allowed_modes[] = {"dht22", "bme680", "pms5003", "mhz19"};
     const size_t allowed_count = sizeof(allowed_modes) / sizeof(allowed_modes[0]);
     char input[256];
