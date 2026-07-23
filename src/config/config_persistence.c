@@ -114,7 +114,7 @@ int load_config(void) {
             // Parse sensor_N_mode, sensor_N_path, sensor_N_enabled
             int idx = -1;
             char suffix[32] = {0};
-            if (sscanf(key, "sensor_%d_%s", &idx, suffix) == 2 && idx >= 0 && idx < MAX_SENSORS) {
+            if (sscanf(key, "sensor_%d_%31s", &idx, suffix) == 2 && idx >= 0 && idx < MAX_SENSORS) {
                 if (strcmp(suffix, "mode") == 0)
                     snprintf(sensor_configs[idx].mode, sizeof(sensor_configs[idx].mode), "%s", value);
                 else if (strcmp(suffix, "path") == 0)
