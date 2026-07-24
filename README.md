@@ -1,14 +1,46 @@
 # Air Quality Monitor
 
-## Overview
+[![CI](https://github.com/Inpotter/AirQualityMonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/Inpotter/AirQualityMonitor/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-see%20LICENSE-blue.svg)](LICENSE)
+[![Language](https://img.shields.io/badge/language-C99-orange.svg)](https://en.wikipedia.org/wiki/C99)
+[![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](#requirements)
 
 Air Quality Monitor is a portable C application that collects, stores, and analyzes air quality–style readings (PM2.5, PM10, CO, NO2, O3, SO2). It uses **SQLite** for storage, optional **libharu** for PDF export, and runs on **Linux**, **macOS**, and **Windows** (e.g. **MSYS2** / **MinGW-w64**).
 
-Legacy code (pre–refactor snapshot) is preserved on the **`legacy`** branch; active development targets **`main`**.
+The core design problem this project solves: sensor hardware isn't always available (in CI, on a dev machine, or during a demo), but the rest of the system -- database, alerts, exports, statistics -- still needs to be built and tested against realistic data. The solution is a **runtime-loadable plugin architecture**: sensors are `.so`/`.dylib`/`.dll` modules loaded via `dlopen`/`LoadLibrary`, validated against a versioned ABI, and each one falls back to simulated data automatically when real hardware isn't reachable. The same binary and menu work identically with or without a sensor plugged in.
+
+Legacy code (pre-refactor snapshot) is preserved on the **`legacy`** branch; active development targets **`main`**.
 
 ## Demo
 
 [![asciicast](https://asciinema.org/a/1261473.svg)](https://asciinema.org/a/1261473)
+
+## Architecture
+
+```
+                    +--------------------+
+                    |   main.c (menu)    |
+                    +---------+----------+
+                              |
+        +---------------------+---------------------+
+        |                     |                      |
+ +------v------+     +--------v--------+     +-------v-------+
+ |  aqm_db.c   |     | sensor_loader.c |     | config_        |
+ |  (SQLite)   |     |  (plugin ABI)   |     | persistence.c  |
+ +-------------+     +--------+--------+     +----------------+
+                              |
+                    dlopen / LoadLibrary
+                              |
+              +---------------+----------------+
+              |                |                |
+     +--------v-------+ +------v---------+ +----v-----------+
+     | dht22_plugin.so | |pms5003_plugin.so| |  ...more .so   |
+     | (real GPIO or   | | (real UART or   | |  plugins       |
+     |  mock fallback) | |  mock fallback) | |                |
+     +-----------------+ +-----------------+ +----------------+
+```
+
+Every plugin exports a single `SensorPlugin sensor_plugin` symbol matching the ABI defined in `sensor.h`. `sensor_module_load()` rejects any plugin whose `api_version` doesn't match `SENSOR_PLUGIN_API_VERSION`, or that's missing a required function pointer, before the plugin is ever called -- a stale or incompatible module fails loudly at load time instead of crashing later. See `docs/plugins.md` for the full plugin authoring guide.
 
 ## Features
 
@@ -21,6 +53,25 @@ Legacy code (pre–refactor snapshot) is preserved on the **`legacy`** branch; a
 - **Export**: CSV with correct column semantics.
 - **Statistics**: per-sensor aggregates (avg / max / min) for each pollutant.
 - **Optional PDF**: built when compiled with `HAVE_HPDF` and linked against libharu.
+
+## Testing and code quality
+
+- **Unit tests** (Unity): 39 tests across 3 suites -- string/mode validation, PMS5003 frame parsing and checksum validation, and config-value parsing (`aqm_parse_int`/`aqm_parse_float`/`aqm_trim_crlf`). Run with `make test`.
+- **Static analysis** (cppcheck): run in CI on every push -- a full report plus a stricter pass that fails the build on real warnings/errors.
+- **API documentation** (Doxygen): generated from comments in `include/`. See [Documentation](#documentation) below.
+- **Continuous integration**: builds the app and plugins, runs the test suite, and runs cppcheck on every push/PR to `main`. See the badge at the top of this file.
+
+## Documentation
+
+Full API reference generated with Doxygen: **https://inpotter.github.io/AirQualityMonitor/**
+
+To regenerate locally:
+
+```sh
+doxygen Doxyfile
+```
+
+Output lands in `docs/api/html/` (gitignored).
 
 ## Requirements
 
@@ -56,33 +107,6 @@ Build without PDF if libhpdf is unavailable:
 make HAVE_HPDF=0
 ```
 
-## File layout (main sources)
-
-```
-AirQualityMonitor/
-├── Makefile
-├── README.md
-├── include/
-│   ├── core/          # db, paths, platform, globals
-│   └── sensor/        # plugin ABI/loader/runtime info headers
-├── src/
-│   ├── app/
-│   │   └── main.c
-│   ├── core/          # db, paths, platform, global defaults
-│   ├── config/        # limits + config persistence
-│   ├── data/          # insert/fetch/export/statistics
-│   ├── sensor/        # collection flow + plugin loader/runtime info
-│   ├── report/        # alerts + pdf report
-│   └── maintenance/   # backup + cleanup
-└── plugins/
-    ├── dht22_plugin.c
-    ├── bme680_plugin.c
-    ├── pms5003_plugin.c
-    └── mhz19_plugin.c
-├── docs/
-│   └── plugins.md
-```
-
 ## Build
 
 ```sh
@@ -92,19 +116,9 @@ make
 Produces `air_quality_monitor` (on Windows with MinGW, the file may appear as `air_quality_monitor.exe`).
 
 ```sh
+make test    # build and run the Unity test suites
 make clean
 ```
-
-## Configuration and data
-
-| Item | Default |
-|------|---------|
-| Data directory | `./data/` (created automatically) |
-| Database | `./data/air_quality.db` |
-| Config | `./data/config.cfg` |
-| Override | Set environment variable `AIR_QUALITY_DATA_DIR` to an absolute or relative directory path |
-
-CSV export writes `sensor_data.csv` in the **current working directory**. PDF output is `sensor_data_report.pdf` in the CWD when PDF support is enabled.
 
 ### Sensor selection (portable mocks)
 
@@ -211,28 +225,30 @@ On first run, if no config exists, the program prompts for limits and settings, 
 
 ### Menu
 
-1. Start data collection (number of samples × interval from config)  
-2. Fetch data (recent rows, plain text table)  
-3. Check alerts (latest sample vs limits)  
-4. Export to CSV  
-5. Generate statistics  
-6. Backup database (SQLite backup API → `data/backup_<timestamp>_air_quality.db`)  
-7. Cleanup old data (retention in days)  
-8. Generate PDF report (if built with libharu)  
-9. Configure limits and settings  
-10. Show sensor runtime info (active mode/env/plugin metadata)  
-11. Configure sensor/plugin runtime (enable/disable plugins, choose mode/path)  
-12. Auto-detect sensors (scan for available sensor plugins and hardware)  
-13. Configure multi-sensor setup (manage multiple sensors for simultaneous collection)  
-0. Exit  
+1. Start data collection (number of samples × interval from config)
+2. Fetch data (recent rows, plain text table)
+3. Check alerts (latest sample vs limits)
+4. Export to CSV
+5. Generate statistics
+6. Backup database (SQLite backup API → `data/backup_<timestamp>_air_quality.db`)
+7. Cleanup old data (retention in days)
+8. Generate PDF report (if built with libharu)
+9. Configure limits and settings
+10. Show sensor runtime info (active mode/env/plugin metadata)
+11. Configure sensor/plugin runtime (enable/disable plugins, choose mode/path)
+12. Auto-detect sensors (scan for available sensor plugins and hardware)
+13. Configure multi-sensor setup (manage multiple sensors for simultaneous collection)
+0. Exit
 
 After each action, the program waits for Enter before returning to the menu.
 
-## Branches
+## Known limitations
 
-- **`main`**: current refactored codebase.  
-- **`legacy`**: snapshot of the previous layout (single-table assumptions, `cp` backup, `ncurses` fetch, etc.) preserved for comparison.
+- **No non-interactive/CLI mode.** All interaction goes through the numbered menu (`stdin`); there's no way to script a single action (e.g. "collect 10 samples and exit") without driving the menu. This is also why `config_persistence.c` and the menu-handling functions in `main.c` aren't unit tested -- they're coupled to live terminal I/O.
+- **Test coverage is partial.** Unity tests cover the pure/isolated modules (string validation, frame parsing, config-value parsing). Statistics aggregation (`generate_statistics.c`, `export_to_csv.c`'s `update_sensor_stats`) and alert evaluation (`alert_system.c`) are not yet covered.
+- **`insert_data()` is dead code.** Superseded by `insert_data_sqlite()` (which takes an already-open connection), but kept for now -- see the `@deprecated` note in `include/data/insert_data.h`.
+- **Global mutable state.** Sensor configuration and pollutant limits are process-wide globals (`globals.c`), not passed through a context struct. Workable at this scale; would need to change if the collection logic were ever made concurrent.
 
 ## License
 
-See `LICENSE` in the repository.
+See [LICENSE](LICENSE) in the repository.
