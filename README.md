@@ -6,6 +6,10 @@ Air Quality Monitor is a portable C application that collects, stores, and analy
 
 Legacy code (pre–refactor snapshot) is preserved on the **`legacy`** branch; active development targets **`main`**.
 
+## Demo
+
+[![asciicast](https://asciinema.org/a/1261473.svg)](https://asciinema.org/a/1261473)
+
 ## Features
 
 - **Structured database**: normalized `sensors` + `readings` tables, foreign keys, indexes, migration from the old single-table `SensorData` schema when present.
