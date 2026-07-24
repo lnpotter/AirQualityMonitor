@@ -61,9 +61,15 @@ backup_*.db
 air_quality_monitor
 air_quality_monitor.exe
 
+# Tests
+tests/*.exe
+
 # Config
 config.cfg
 
 # Generated exports
 sensor_data.csv
 sensor_data_report.pdf
+
+# Generated documentation (run `doxygen Doxyfile` to regenerate)
+docs/api/
