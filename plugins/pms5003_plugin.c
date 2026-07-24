@@ -69,6 +69,26 @@ static int open_serial_9600(const char *device) {
     return fd;
 }
 
+// parse and validate a 32-byte PMS5003 frame (bytes already include the
+// 0x42 0x4D header). Pure function -- no I/O -- so it can be unit tested
+// without a real UART connection.
+// returns 0 on success (pm25/pm10 populated), -1 if the checksum fails.
+int pms5003_parse_frame(const unsigned char frame[32], int *pm25, int *pm10) {
+    if (!frame || !pm25 || !pm10)
+        return -1;
+
+    unsigned int sum = 0;
+    for (int k = 0; k < 30; k++)
+        sum += frame[k];
+    unsigned int chk = ((unsigned int)frame[30] << 8) | frame[31];
+    if ((sum & 0xFFFF) != chk)
+        return -1;
+
+    *pm25 = ((int)frame[12] << 8) | frame[13];
+    *pm10 = ((int)frame[14] << 8) | frame[15];
+    return 0;
+}
+
 static int read_frame(int fd, unsigned char *buf, size_t want) {
     size_t got = 0;
     while (got < want) {
@@ -105,16 +125,11 @@ static int read_pms5003(float *pm25, float *pm10) {
                 close(fd);
                 return -1;
             }
-            unsigned int sum = 0;
-            for (int k = 0; k < 30; k++)
-                sum += frame[k];
-            unsigned int chk = ((unsigned int)frame[30] << 8) | frame[31];
-            if ((sum & 0xFFFF) != chk) {
+            int val_pm25 = 0, val_pm10 = 0;
+            if (pms5003_parse_frame(frame, &val_pm25, &val_pm10) != 0) {
                 close(fd);
                 return -1;
             }
-            int val_pm25 = ((int)frame[12] << 8) | frame[13];
-            int val_pm10 = ((int)frame[14] << 8) | frame[15];
             *pm25 = (float)val_pm25;
             *pm10 = (float)val_pm10;
             close(fd);
@@ -167,4 +182,3 @@ SENSOR_PLUGIN_EXPORT SensorPlugin sensor_plugin = {
     .read_sample = pms5003_read_sample,
     .shutdown = pms5003_shutdown,
 };
-
