@@ -1,0 +1,42 @@
+name: CI
+
+"on":
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev libhpdf-dev cppcheck
+
+      - name: Build main application
+        run: make
+
+      - name: Build sensor plugins
+        run: make plugins
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Run cppcheck (full report)
+        run: |
+          cppcheck --enable=all --std=c99 -Iinclude -Iinclude/core -Iinclude/sensor \
+            --suppress=missingIncludeSystem --inline-suppr \
+            src/ plugins/
+
+      - name: Run cppcheck (fail on error/warning only)
+        run: |
+          cppcheck --enable=warning --std=c99 -Iinclude -Iinclude/core -Iinclude/sensor \
+            --suppress=missingIncludeSystem --inline-suppr \
+            --error-exitcode=1 \
+            src/ plugins/
