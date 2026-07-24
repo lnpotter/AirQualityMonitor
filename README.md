@@ -63,7 +63,7 @@ Every plugin exports a single `SensorPlugin sensor_plugin` symbol matching the A
 
 ## Documentation
 
-Full API reference generated with Doxygen: **https://inpotter.github.io/AirQualityMonitor/**
+Full API reference generated with Doxygen: **https://lnpotter.github.io/AirQualityMonitor/**
 
 To regenerate locally:
 
