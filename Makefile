@@ -100,11 +100,17 @@ PMS5003_TEST_SRCS = $(UNITY_DIR)/unity.c \
             $(TEST_DIR)/test_pms5003_parse_frame.c \
             $(PLUGIN_DIR)/pms5003_plugin.c
 
-test: $(SENSOR_UTILS_TEST_SRCS) $(PMS5003_TEST_SRCS)
+PLATFORM_TEST_SRCS = $(UNITY_DIR)/unity.c \
+            $(TEST_DIR)/test_aqm_platform_parsing.c \
+            $(SRC_DIR)/core/aqm_platform.c
+
+test: $(SENSOR_UTILS_TEST_SRCS) $(PMS5003_TEST_SRCS) $(PLATFORM_TEST_SRCS)
 	$(CC) $(CFLAGS) -I$(UNITY_DIR) -o $(TEST_DIR)/test_sensor_utils $(SENSOR_UTILS_TEST_SRCS)
 	$(CC) $(CFLAGS) -I$(UNITY_DIR) -o $(TEST_DIR)/test_pms5003 $(PMS5003_TEST_SRCS)
+	$(CC) $(CFLAGS) -I$(UNITY_DIR) -o $(TEST_DIR)/test_aqm_platform $(PLATFORM_TEST_SRCS)
 	./$(TEST_DIR)/test_sensor_utils
 	./$(TEST_DIR)/test_pms5003
+	./$(TEST_DIR)/test_aqm_platform
 
 clean:
-	rm -f $(TARGET) $(TARGET).exe tests/test_sensor_utils tests/test_sensor_utils.exe tests/test_pms5003 tests/test_pms5003.exe *.o *.so *.dylib *.dll plugins/*.so plugins/*.dylib plugins/*.dll
+	+	rm -f $(TARGET) $(TARGET).exe tests/test_sensor_utils tests/test_sensor_utils.exe tests/test_pms5003 tests/test_pms5003.exe tests/test_aqm_platform tests/test_aqm_platform.exe *.o *.so *.dylib *.dll plugins/*.so plugins/*.dylib plugins/*.dll
