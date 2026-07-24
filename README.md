@@ -1,6 +1,6 @@
 # Air Quality Monitor
 
-[![CI](https://github.com/Inpotter/AirQualityMonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/Inpotter/AirQualityMonitor/actions/workflows/ci.yml)
+[![CI](https://github.com/lnpotter/AirQualityMonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/lnpotter/AirQualityMonitor/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-see%20LICENSE-blue.svg)](LICENSE)
 [![Language](https://img.shields.io/badge/language-C99-orange.svg)](https://en.wikipedia.org/wiki/C99)
 [![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](#requirements)
