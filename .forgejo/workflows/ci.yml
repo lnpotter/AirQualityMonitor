@@ -1,3 +1,9 @@
+# NOTE: Repository Actions is currently disabled for this mirror on
+# git.disroot.org, since Disroot does not
+# appear to provide shared Forgejo Runners and no self-hosted runner is
+# configured yet. This workflow is kept for reference/future use — the
+# canonical, currently-running CI is .github/workflows/ci.yml on GitHub.
+
 name: CI
 
 "on":
